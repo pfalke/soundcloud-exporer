@@ -1,8 +1,9 @@
 /*jshint asi: true*/
 
-var SOUNDCLOUD_CLIENT_ID = '81d9704f45e2b1d224e791d20eb76d2f'
-
 $(document).ready(function() {
+
+
+
 	// count how many users have been processed
 	var maxDegree = 2
 	var minNodeDegree = 7
@@ -225,17 +226,17 @@ $(document).ready(function() {
 	updateGraph('Loading -> Your Data')
 
 	// get data of initial user, then start traveling down the tree
-	$.getJSON('http://api.soundcloud.com/users/'+rootID+
-		'.json?client_id='+SOUNDCLOUD_CLIENT_ID).done(function(user_data) {
-			rootID = user_data.id
-			users[rootID] = new User(rootID, user_data)
-			// start traveling down the tree
-			iterateSounds(rootID,0)
-			// user_data.followings = []
-			// user_data.followers = []
-			// usersProcessed[rootID] = user_data
-			// getFavorites(rootID, 0 , 'root')
-	})
+	// $.getJSON('http://api.soundcloud.com/users/'+rootID+
+	// 	'.json?client_id='+SOUNDCLOUD_CLIENT_ID).done(function(user_data) {
+	// 		rootID = user_data.id
+	// 		users[rootID] = new User(rootID, user_data)
+	// 		// start traveling down the tree
+	// 		iterateSounds(rootID,0)
+	// 		// user_data.followings = []
+	// 		// user_data.followers = []
+	// 		// usersProcessed[rootID] = user_data
+	// 		// getFavorites(rootID, 0 , 'root')
+	// })
 
 })
 
