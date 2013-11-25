@@ -8,11 +8,39 @@ $(document).ready(function() {
 	var maxDegree = 5
 	var minNodeDegree = 7
 
-	var usersProcessed = {}, // the users that have been processed, indexed by ID
-		tracksSighted = {}, // the tracks that have been sighted, indexed by ID
-		rootID = 'pfalke', // soundcloud id of the root user for tree
-		edges = [] // edges to be drawn in the graph. these also define the nodes
+	// parser for halfviz
+	var parse = Parseur().parse
 
+	var usersProcessed = {} // the users that have been processed, indexed by ID
+	// for each user, list of followers, list of followings, list of tracks and queried resources are stored
+	var tracksSighted = {} // the tracks that have been sighted, indexed by ID
+	var rootID = 'pfalke' // soundcloud id of the root user for tree
+	var edges = [] // edges to be drawn in the graph. these also define the nodes
+
+	// a user, local copy of data pulled from Soundcloud
+	function User(id) {
+		this.id = id
+		this.queried = {
+			'user_data': false,
+			'followers': false,
+			'followings': false,
+			'favorites': false,
+			'playlists': false,
+			'tracks': false
+		}
+	}
+
+	// input is graph in '->' form, send this to halfviz
+	function updateGraph(src_text) {
+        var network = parse(src_text)
+        $.each(network.nodes, function(nname, ndata){
+          if (ndata.label===undefined) ndata.label = nname
+        })
+        sys.merge(network)
+        _updateTimeout = null
+        // display text in input area
+        $("#halfviz").find('textarea').val(src_text)
+	}
 
 	function getFollowings(id, degree, parentid) {
 		// mind that soundcloud by default only gives the first 50 followings
@@ -80,7 +108,7 @@ $(document).ready(function() {
 					// note that current user likes this track
 					likers.push(id)
 				}
-				console.log(edges.join('\n'))
+				updateGraph(edges.join('\n'))
 				// continue down the tree if the user had common likes with root and is not too far away
 				// the higher the degree, the more common likes are required!
 				if (likesCommonWithRoot - degree >0 || id == rootID) {
@@ -106,6 +134,7 @@ $(document).ready(function() {
 			usersProcessed[rootID] = user_data
 			getFavorites(rootID, 0 , 'root')
 	})
+
 })
 
 function checkforduplicates(list) {
