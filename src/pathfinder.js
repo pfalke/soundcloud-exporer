@@ -2,7 +2,6 @@
 
 var SOUNDCLOUD_CLIENT_ID = '81d9704f45e2b1d224e791d20eb76d2f'
 
-
 $(document).ready(function() {
 	// count how many users have been processed
 	var maxDegree = 2
@@ -75,89 +74,6 @@ $(document).ready(function() {
         _updateTimeout = null
         // display text in input area
         $("#halfviz").find('textarea').val(src_text)
-	}
-
-	function getFollowings(id, degree, parentid) {
-		// mind that soundcloud by default only gives the first 50 followings
-		$.getJSON('http://api.soundcloud.com/users/'+id+'/followings'+
-			'.json?client_id='+SOUNDCLOUD_CLIENT_ID).done(function(followings) {
-
-				// process the followings
-				for (var i = 0; i < followings.length; i++) {
-					var follower = followings[i]
-					// store user if not already done
-					if (!(follower.id in usersProcessed)) {
-						follower.degree = degree
-						follower.followers = []
-						follower.followings = []
-						usersProcessed[follower.id] = follower
-						// get this user's tracks
-						getFavorites(follower.id,degree)
-					}
-					// store that the original user is following this guy and vice versa
-					usersProcessed[id].followings.push(follower.id)
-					usersProcessed[follower.id].followers.push(id)
-
-				}
-		})
-	}
-
-	function getFavorites(id, degree) {
-		// mind that soundcloud by default only gives the first 50 likes
-		$.getJSON('http://api.soundcloud.com/users/'+id+'/favorites'+
-			'.json?client_id='+SOUNDCLOUD_CLIENT_ID).done(function(favorites) {
-				// console.log('User '+ id + ' has ' + favorites.length + ' favorites.')
-				// console.log(favorites)
-
-				// followings will be pulled if favorites intersect with root favorites
-				var likesCommonWithRoot = 0
-
-				// process favorites
-				for (var i = 0; i < favorites.length; i++) {
-					var track = favorites[i]
-					// store track if not done already
-					if (!(track.id in tracksSighted)) {
-						track.likedBy = []
-						tracksSighted[track.id] = track
-						// console.log('Track ' + track.id + ' stored.')
-					}
-					// list of known users that like this track
-					var likers = tracksSighted[track.id].likedBy
-					if (likers.indexOf(id) != -1) console.log(id + ' bereits in liste')
-
-					// check if like intersects with root user
-					if (likers.indexOf(rootID) != -1) likesCommonWithRoot+=1
-
-					// insert edge if:
-					if (likers.length>=minNodeDegree-1) {
-						// show on graph that current user likes this track
-						edges.push('' + usersProcessed[id].username + ' -> ' + track.title)
-						if (likers.length == minNodeDegree-1) {
-							// draw edges for other users that like the track
-							for (var j=0; j<likers.length; j++) {
-								edges.push(usersProcessed[likers[j]].username + ' -> ' + track.title)
-							}
-						}
-					}
-
-					// note that current user likes this track
-					likers.push(id)
-				}
-				updateGraph(edges.join('\n'))
-				// continue down the tree if the user had common likes with root and is not too far away
-				// the higher the degree, the more common likes are required!
-				if (likesCommonWithRoot - degree >0 || id == rootID) {
-					console.log('User ' + id + ' at degree ' + degree + ' has ' +
-						likesCommonWithRoot + ' common likes with root. follow up.')
-					if (degree < maxDegree) {
-						console.log('degree is '+degree+'. get followings')
-						getFollowings(id, degree+1)
-					}
-					else {
-						console.log('no follow up, degree too high')
-					}
-				}
-		})
 	}
 
 	// when a sound as at least minNodeDegree edges, include it into graph
@@ -262,8 +178,8 @@ $(document).ready(function() {
 			if (rootSounds.indexOf(soundID) != -1) commonSounds +=1
 		})
 		// console.log('User ' + id + ' has ' + commonSounds + ' common sounds (of '+ sounds.length+
-		// 	') with root user (' + rootSounds.length + '). Degree ' +
-		// 	degree)
+		// ') with root user (' + rootSounds.length + '). Degree ' +
+		// degree)
 
 		// flag the user not to be iterated again
 		user.iteratedSounds = true
@@ -297,6 +213,18 @@ $(document).ready(function() {
 		})
 
 	}
+
+
+
+
+
+
+
+
+	// START HERE
+
+	// display "Loading"
+	updateGraph('Loading -> Your Data')
 
 	// get data of initial user, then start traveling down the tree
 	$.getJSON('http://api.soundcloud.com/users/'+rootID+
