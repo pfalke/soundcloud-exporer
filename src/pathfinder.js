@@ -124,8 +124,6 @@ $(document).ready(function() {
 	// get all followings, followers for a user from soundcloud API
 	function queryConnectedUsers(id, degree, callback) {
 		var user = users[id]
-		user.followers = []
-		user.followings = []
 		user.connectedUsers = []
 		$.each(['followings', 'followers'], function(index, set) {
 			user[set] = []
