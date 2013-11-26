@@ -305,23 +305,24 @@ $(document).ready(function() {
 		})
 	}
 
-	function startWithId(id) {
-		$.getJSON('https://api.soundcloud.com/users/'+id+
-		'.json?client_id='+SOUNDCLOUD_CLIENT_ID).done(function(user) {
+	function startWithId(id, accessTokenSC) {
+		var url = 'https://api.soundcloud.com/users/'+id+
+		'.json?client_id='+SOUNDCLOUD_CLIENT_ID
+		if (id == 'me' && accessTokenSC) {
+			url = "https://api.soundcloud.com/me.json?oauth_token=" + accessTokenSC
+		}
+		$.getJSON(url).done(function(user) {
 			console.log("Start graph search for user " + user.username)
 			rootID = user.id
 			users[rootID] = new User(rootID, user)
 			// start traveling down the tree
 			iterateSounds(rootID,0)
-			// make graph visible
-			$('#path_container').show()
-
 		})
 	}
 
 	// get a URL query paramter. used to extract oauth code
 	function getParameterByName(name) {
-		name = name.replace(/[\[]/, "\\\[").replace(/[\]]/, "\\\]");
+		// name = name.replace(/[\[]/, "\\\[").replace(/[\]]/, "\\\]");
 		var regex = new RegExp("[\\?&]" + name + "=([^&#]*)"),
 			results = regex.exec(location.search);
 		return results === null ? "" : decodeURIComponent(results[1].replace(/\+/g, " "));
@@ -329,97 +330,38 @@ $(document).ready(function() {
 
 	function startWithOAuthUser() {
 		// retrive accessToken from LocalStorage
-		accessTokenSC = localStorage.accessTokenSC
-		// otherwise convert oAuth code to accessToken or redirect for oauth code
-		if (!accessTokenSC) {
-			var oauthCode = getParameterByName('code')
-			if (oauthCode) {
-				$.post('https://api.soundcloud.com/oauth2/token', {
-					'client_id': SOUNDCLOUD_CLIENT_ID,
-					'client_secret': SOUNDCLOUD_CLIENT_SECRET,
-					'redirect_uri': SOUNDCLOUD_OAUTH_REDIRECT_URL,
-					'grant_type': 'authorization_code',
-					'code': oauthCode
-				}).fail(function reqFail(data, status, jqXHR) {console.log(data)})
-				.done(function reqDone(data, status, jqXHR) {
-					// store token and start again
-					if (typeof(data) == 'object' && 'access_token' in data) {
-						localStorage.accessTokenSC = data['access_token']
-						startWithOAuthUser()
-					}
-				})
-			} else {
-				// redirect to soundcloud for Authorization if there is no code
-				var params = $.param({
-					'client_id': SOUNDCLOUD_CLIENT_ID,
-					'redirect_uri': SOUNDCLOUD_OAUTH_REDIRECT_URL,
-					'response_type': 'code',
-					'scope': 'non-expiring',
-				})
-				location.href = '/splashpage'
-			}
+		var accessTokenSC = localStorage.accessTokenSC
+		// when redirected form SC oauth dialog
+		var oauthCode = getParameterByName('code')
+		if (accessTokenSC) {
+			// we are authorized
+			startWithId('me', accessTokenSC)
+		} else if (!accessTokenSC && oauthCode) {
+			// get accessToken, then restart
+			$.post('https://api.soundcloud.com/oauth2/token', {
+				'client_id': SOUNDCLOUD_CLIENT_ID,
+				'client_secret': SOUNDCLOUD_CLIENT_SECRET,
+				'redirect_uri': SOUNDCLOUD_OAUTH_REDIRECT_URL,
+				'grant_type': 'authorization_code',
+				'code': oauthCode
+			}).fail(function reqFail(data, status, jqXHR) {console.log(data)})
+			.done(function reqDone(data, status, jqXHR) {
+				// store token and start again
+				if (typeof(data) == 'object' && 'access_token' in data) {
+					localStorage.accessTokenSC = data['access_token']
+					startWithOAuthUser()
+				} else {console.log(data)}
+			})
+		} else {
+			// splashpage prompt user to authorize on SC
+			location.href = '/splashpage'
 		}
-		$.getJSON("https://api.soundcloud.com/me.json?oauth_token=" + accessTokenSC)
-		.done(function gotMyself(user) {
-			console.log("Start graph search for user " + user.username)
-			rootID = user.id
-			users[rootID] = new User(rootID, user)
-			// start traveling down the tree
-			iterateSounds(rootID,0)
-			// make graph visible
-			$('#path_container').show()
-			// log the visit
-			logVisit(user)
-		})
 	}
+
 
 
 	// START HERE
 
-	// check if user is being redirect from SC or oauth code is in store
-	// if (oauthCode) {
-	// 	// store code
-	// 	if(typeof(Storage)!=="undefined") {
-	// 		localStorage.SC_oauthCode=oauthCode
-	// 	}
-	// } else {
-	// 	// try to retrieve code
-	// 	if(typeof(Storage)!=="undefined") {
-	// 		oauthCode = localStorage.SC_oauthCode
-	// 	}
-	// }
-
-
-
-	// get access token to use SC API
-	// var accessTokenSC = localStorage.accessTokenSC
-	// if (!accessTokenSC) {
-	// 	$.post('https://api.soundcloud.com/oauth2/token', {
-	// 		'client_id': SOUNDCLOUD_CLIENT_ID,
-	// 		'client_secret': SOUNDCLOUD_CLIENT_SECRET,
-	// 		'redirect_uri': SOUNDCLOUD_OAUTH_REDIRECT_URL,
-	// 		'grant_type': 'authorization_code',
-	// 		'code': oauthCode
-	// 	}).fail(function (data, status, jqXHR) {
-	// 		console.log(data)
-	// 	}).done(function (data, status, jqXHR) {
-	// 		if (typeof(data) == 'object' && 'access_token' in data) {
-	// 			accessTokenSC = data['access_token']
-	// 			localStorage.accessTokenSC = accessTokenSC
-	// 			getData(accessTokenSC)
-	// 		}
-	// 	})
-	// } else {
-	// 	getData(accessTokenSC)
-	// }
-
-	// function getData(accessTokenSC) {
-	// 		$.get("https://api.soundcloud.com/me.json?oauth_token=" + accessTokenSC)
-	// 		.done(function(resp) {
-	// 			console.log(resp)
-	// 		})
-	// }
-	
 
 	// display "Loading"
     var mcp = HalfViz("#halfviz")
@@ -432,7 +374,6 @@ $(document).ready(function() {
 	writeGraphSource()
 
 	startWithOAuthUser()
-	// startWithOAuth()
 	// startWithId('emeli-st-rmer')
 	// emeli-st-rmer
 	// eleonore-van-roosendaal

@@ -9,10 +9,6 @@ body{
   background:#665;
 }
 
-#path_container {
-  display: none;
-}
-
 #halfviz{
 /*  float:left;*/
   position:absolute;
