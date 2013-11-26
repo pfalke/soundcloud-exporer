@@ -1,0 +1,41 @@
+application: soundcloud-explore
+version: oauth
+runtime: python27
+api_version: 1
+threadsafe: yes
+
+handlers:
+- url: /arbor
+  static_dir: arbor
+  secure: always
+
+- url: /src
+  static_dir: src
+  secure: always
+
+- url: /style
+  static_dir: style
+  secure: always
+
+- url: /favicon\.ico
+  static_files: favicon.ico
+  upload: favicon\.ico
+  secure: always
+
+- url: /
+  static_files: index.html
+  upload: index\.html
+  secure: always
+
+- url: /splashpage
+  static_files: splashpage.html
+  upload: splashpage\.html
+  secure: always
+
+- url: .*
+  script: main.app
+  secure: always
+
+libraries:
+- name: webapp2
+  version: "2.5.2"
