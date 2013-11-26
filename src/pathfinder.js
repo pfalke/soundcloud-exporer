@@ -84,30 +84,27 @@ $(document).ready(function() {
 			} else {
 				userCounts[id] = 1
 			}
-
 		}
-		// get sounds for the graph
+
+		// get sounds that have high enough degree for the graph
 		soundsInGraph = []
 		for (var soundId in sounds) {
 			if (sounds[soundId].connectedUsers.length>=minNodeDegree) {
-				// this sound is good for graph
 				soundsInGraph.push(sounds[soundId])
 				// bump count for each user associated with sound
 				$.each(sounds[soundId].connectedUsers, bumpUserCount)
 			}
 		}
 
-		console.log(userCounts)
 		// write edges
 		graphSrc = ''
 		$.each(soundsInGraph, function(index, sound) {
 			// node for the sound
-			graphSrc += sound.soundData.title + '\n'
+			// graphSrc += sound.soundData.title + '\n'
 			// check which users to connect to the node
 			$.each(sound.connectedUsers, function(i, user) {
 				if (userCounts[user.userData.id]>= minUserDegree) {
 					graphSrc += user.userData.username + ' -> ' + sound.soundData.title + '\n'
-					console.log(userCounts[user.userData.id])
 				}
 			})
 		})
@@ -306,16 +303,3 @@ $(document).ready(function() {
 	// eleonore-van-roosendaal
 
 })
-
-function checkforduplicates(list) {
-	var counts = {}
-	var elem
-	for (var i = 0; i< list.length; i++) {
-		elem = list[i]
-		if (elem in counts) counts[elem]+=1
-		else counts[elem] =  1
-	}
-	for (var j in counts) {
-		if (counts[j] > 1) console.log(j + ' times ' + counts[j])
-	}
-}
