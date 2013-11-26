@@ -6,7 +6,7 @@ $(document).ready(function() {
 
 	// count how many users have been processed
 	var maxDegree = 3
-	var minNodeDegree = 12
+	var minNodeDegree = 8
 	var minUserDegree = 3
 
 	// parser for halfviz
@@ -76,8 +76,9 @@ $(document).ready(function() {
 	// writes the source file for the graph and passes it to the parser
 	var writeGraphSource = function() {
 		// check how often each user appers - don't want users that appear only once
-		userCounts = {}
-		function bumpUserCount(index, user) {
+		var soundsInGraph
+		var userCounts
+		var bumpUserCount = function(index, user) {
 			var id =user.userData.id
 			if (id in userCounts) {
 				userCounts[id] +=1
@@ -87,13 +88,50 @@ $(document).ready(function() {
 		}
 
 		// get sounds that have high enough degree for the graph
-		soundsInGraph = []
-		for (var soundId in sounds) {
-			if (sounds[soundId].connectedUsers.length>=minNodeDegree) {
-				soundsInGraph.push(sounds[soundId])
-				// bump count for each user associated with sound
-				$.each(sounds[soundId].connectedUsers, bumpUserCount)
+		function getSoundsForGraphAndUserCounts() {
+			soundsInGraph = []
+			userCounts = {}
+			for (var soundId in sounds) {
+				if (sounds[soundId].connectedUsers.length>=minNodeDegree) {
+					soundsInGraph.push(sounds[soundId])
+					// bump count for each user associated with sound
+					$.each(sounds[soundId].connectedUsers, bumpUserCount)
+				}
 			}
+		}
+
+		getSoundsForGraphAndUserCounts()
+
+		// there should be 5-15 sounds in the graph. adjust parameters as long as it makes sense
+		while (soundsInGraph.length> 15 && minNodeDegree<25) {
+			minNodeDegree +=1
+			console.log('increased nodeDegree to '+ minNodeDegree +
+				', had ' + soundsInGraph.length + ' sounds')
+			getSoundsForGraphAndUserCounts()
+		}
+		while (soundsInGraph.length< 5 && minNodeDegree>3) {
+			minNodeDegree -=1
+			console.log('decreased nodeDegree to '+ minNodeDegree +
+				', had ' + soundsInGraph.length + ' sounds')
+			getSoundsForGraphAndUserCounts()
+		}
+
+		// there should be 5-15 users in the graph. adjust parameters as long as it makes sense
+		var bigUsers
+		var computeNumerBigUsers = function() {
+			bigUsers = 0
+			for (var i in userCounts) {
+				if (userCounts[i]>minUserDegree) {bigUsers+=1}
+			}
+		}
+		computeNumerBigUsers()
+		while (bigUsers<5 && minUserDegree>1) {
+			minUserDegree -=1
+			computeNumerBigUsers()
+		}
+		while (bigUsers>15 && minUserDegree<15) {
+			minUserDegree +=1
+			computeNumerBigUsers()
 		}
 
 		// write edges
@@ -113,7 +151,9 @@ $(document).ready(function() {
 		if (graphSrc.length > 0) updateGraph(graphSrc)
 
 		// update again in .5 sec
-		setTimeout(writeGraphSource, 3000)
+		setTimeout(writeGraphSource, 800)
+		// use updated variables next time
+
 	}
 
 	// input is graph in '->' form, send this to halfviz
@@ -293,12 +333,12 @@ $(document).ready(function() {
 
 	// display "Loading"
     var mcp = HalfViz("#halfviz")
-    updateGraph('Loading -> Your Data')
+    updateGraph('Loading -> Your Data \n Your Data -> This can take \n This can take -> a few minutes')
 	setTimeout(function() {	$(window).resize()},300)
 	writeGraphSource()
 
-	// startWithOAuth()
-	startWithId('eleonore-van-roosendaal')
+	startWithOAuth()
+	// startWithId('pfalke')
 	// emeli-st-rmer
 	// eleonore-van-roosendaal
 
