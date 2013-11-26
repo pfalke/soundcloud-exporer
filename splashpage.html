@@ -3,7 +3,7 @@
 
 <html lang="en">
 <head>
-  <link rel="stylesheet" href="../style/bootstrap.min.css" type="text/css" charset="utf-8">
+  <link rel="stylesheet" href="style/bootstrap.min.css" type="text/css" charset="utf-8">
   <link href='http://fonts.googleapis.com/css?family=Source+Sans+Pro:400,700' rel='stylesheet' type='text/css'>
   <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
     <title>Soundcloud Pathfinder</title>
@@ -23,7 +23,7 @@ background-color: white;
 padding: 50px;">
     <h1>Soundcloud Explorer</h1>
     <h4>Get a graph of the sounds and music-lovers around you.</h4>
-      <a id="button" href="https://soundcloud.com/connect?client_id=f90fa65cc94d868d957c0b529c5ecc3d&redirect_uri=http%3A%2F%2Flocalhost%3A16081%2F&response_type=code&scope=non-expiring">
+      <a id="button">
         <button class="btn btn-primary">Connect with Soundcloud
         </button>
       </a>
@@ -34,13 +34,14 @@ padding: 50px;">
   SOUNDCLOUD_OAUTH_REDIRECT_URL = 'https://soundcloud-explore.appspot.com/'
   if (document.domain.indexOf('localhost') != -1) {
     SOUNDCLOUD_CLIENT_ID = 'f90fa65cc94d868d957c0b529c5ecc3d'
-    SOUNDCLOUD_OAUTH_REDIRECT_URL = 'http://localhost:16081/callback.html'
+    SOUNDCLOUD_OAUTH_REDIRECT_URL = 'http://localhost:16081/'
   }
-  var url = "https://soundcloud.com/connect?client_id=f90fa65cc94d868d957c0b529c5ecc3d&redirect_uri=http%3A%2F%2Flocalhost%3A16081%2F&response_type=code&scope=non-expiring"
+  var url = "https://soundcloud.com/connect?response_type=code&scope=non-expiring"
+  url += "&client_id="+ encodeURIComponent(SOUNDCLOUD_CLIENT_ID)
+  url += "&redirect_uri=" + encodeURIComponent(SOUNDCLOUD_OAUTH_REDIRECT_URL)
 
-  console.log(encodeURIComponent(SOUNDCLOUD_OAUTH_REDIRECT_URL))
-  console.log('http%3A%2F%2Flocalhost%3A16081%2F')
-
+  var link = document.getElementById('button')
+  link.href= url
 </script>
 
 </body>

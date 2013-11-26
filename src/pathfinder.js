@@ -377,8 +377,7 @@ $(document).ready(function() {
 					'response_type': 'code',
 					'scope': 'non-expiring',
 				})
-				// location.href = 'https://soundcloud.com/connect?' + params
-				console.log('https://soundcloud.com/connect?' + params)
+				location.href = '/splashpage'
 			}
 		}
 		$.getJSON("https://api.soundcloud.com/me.json?oauth_token=" + accessTokenSC)
