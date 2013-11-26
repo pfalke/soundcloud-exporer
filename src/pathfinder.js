@@ -353,7 +353,7 @@ $(document).ready(function() {
 			// remove code from displayed url
 			var url = location.protocol+'//'+location.hostname+
 				(location.port ? ':'+location.port: '')+'/'
-			history.pushState({id: lkey+'/'+rkey}, '', url);
+			history.pushState({id: 'oauth_code'}, '', url);
 		} else {
 			// splashpage prompt user to authorize on SC
 			location.href = '/splashpage'
