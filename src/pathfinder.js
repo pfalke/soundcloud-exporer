@@ -21,11 +21,8 @@ $(document).ready(function() {
 	// parser for halfviz
 	var parse = Parseur().parse
 
-	var users = {}
-	var sounds = {}
-	var usersProcessed = {} // the users that have been processed, indexed by ID
-	// for each user, list of followers, list of followings, list of tracks and queried resources are stored
-	var tracksSighted = {} // the tracks that have been sighted, indexed by ID
+	var users = {} // the users that have been processed, indexed by ID
+	var sounds = {} // the tracks that have been sighted, indexed by ID
 	var rootID = 'pfalke' // soundcloud id of the root user for tree
 	var edges = [] // edges to be drawn in the graph. these also define the nodes
 
@@ -283,7 +280,8 @@ $(document).ready(function() {
 	// iterate over all followers and followings of a user
 	function iterateConnectedUsers(id, degree) {
 		var user = users[id]
-		// check if we need to load the data first. queryConnectedUsers calls iterateSounds again when finished
+		// check if we need to load the data first.
+		// queryConnectedUsers calls iterateSounds again when finished
 		if (!user.queried.connectedUsers) {
 			queryConnectedUsers(id, degree, iterateConnectedUsers)
 			return
@@ -352,12 +350,15 @@ $(document).ready(function() {
 					startWithOAuthUser()
 				} else {console.log(data)}
 			})
+			// remove code from displayed url
+			var url = location.protocol+'//'+location.hostname+
+				(location.port ? ':'+location.port: '')+'/'
+			history.pushState({id: lkey+'/'+rkey}, '', url);
 		} else {
 			// splashpage prompt user to authorize on SC
 			location.href = '/splashpage'
 		}
 	}
-
 
 
 	// START HERE
