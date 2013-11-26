@@ -290,6 +290,11 @@ $(document).ready(function() {
 	}
 
 	function startWithOAuth() {
+		// parameters for testing on local machine
+		if (document.domain.indexOf('localhost') != -1) {
+			SOUNDCLOUD_CLIENT_ID = 'f90fa65cc94d868d957c0b529c5ecc3d'
+			SOUNDCLOUD_OAUTH_REDIRECT_URL = 'http://localhost:16081/callback.html'
+		}
 		// connect to Soundcloud
 		SC.initialize({
 			client_id: SOUNDCLOUD_CLIENT_ID,
@@ -328,13 +333,18 @@ $(document).ready(function() {
 
 
 
+	console.log(location.href)
 
 	// START HERE
 
 	// display "Loading"
     var mcp = HalfViz("#halfviz")
     updateGraph('Loading -> Your Data \n Your Data -> This can take \n This can take -> a few minutes')
-	setTimeout(function() {	$(window).resize()},300)
+	// resize window to trigger the start of rendering
+	setTimeout(function() {	$(window).resize()},500)
+	setTimeout(function() {	$(window).resize()},1500)
+	setTimeout(function() {	$(window).resize()},3500)
+	setTimeout(function() {	$(window).resize()},7500)
 	writeGraphSource()
 
 	startWithOAuth()
