@@ -2,7 +2,16 @@
 
 $(document).ready(function() {
 
-
+	// parameters for soundcloud
+	SOUNDCLOUD_CLIENT_ID = '81d9704f45e2b1d224e791d20eb76d2f'
+	SOUNDCLOUD_OAUTH_REDIRECT_URL = 'https://soundcloud-explore.appspot.com/'
+	SOUNDCLOUD_CLIENT_SECRET = '4d33c7d194a23e781f184fb2418badae'
+	// parameters for testing on local machine
+	if (document.domain.indexOf('localhost') != -1) {
+		SOUNDCLOUD_CLIENT_ID = 'f90fa65cc94d868d957c0b529c5ecc3d'
+		SOUNDCLOUD_OAUTH_REDIRECT_URL = 'http://localhost:16081/'
+		SOUNDCLOUD_CLIENT_SECRET = '9a7b216fc0874d85e1f9193f572146ac'
+	}
 
 	// count how many users have been processed
 	var maxDegree = 3
@@ -331,11 +340,106 @@ $(document).ready(function() {
 		})
 	}
 
+	// get a URL query paramter. used to extract oauth code
+	function getParameterByName(name) {
+		name = name.replace(/[\[]/, "\\\[").replace(/[\]]/, "\\\]");
+		var regex = new RegExp("[\\?&]" + name + "=([^&#]*)"),
+			results = regex.exec(location.search);
+		return results === null ? "" : decodeURIComponent(results[1].replace(/\+/g, " "));
+	}
 
+	function startWithOAuthUser() {
+		// retrive accessToken from LocalStorage
+		accessTokenSC = localStorage.accessTokenSC
+		// otherwise convert oAuth code to accessToken or redirect for oauth code
+		if (!accessTokenSC) {
+			var oauthCode = getParameterByName('code')
+			if (oauthCode) {
+				$.post('https://api.soundcloud.com/oauth2/token', {
+					'client_id': SOUNDCLOUD_CLIENT_ID,
+					'client_secret': SOUNDCLOUD_CLIENT_SECRET,
+					'redirect_uri': SOUNDCLOUD_OAUTH_REDIRECT_URL,
+					'grant_type': 'authorization_code',
+					'code': oauthCode
+				}).fail(function reqFail(data, status, jqXHR) {console.log(data)})
+				.done(function reqDone(data, status, jqXHR) {
+					// store token and start again
+					if (typeof(data) == 'object' && 'access_token' in data) {
+						localStorage.accessTokenSC = data['access_token']
+						startWithOAuthUser()
+					}
+				})
+			} else {
+				// redirect to soundcloud for Authorization if there is no code
+				var params = $.param({
+					'client_id': SOUNDCLOUD_CLIENT_ID,
+					'redirect_uri': SOUNDCLOUD_OAUTH_REDIRECT_URL,
+					'response_type': 'code',
+					'scope': 'non-expiring',
+				})
+				// location.href = 'https://soundcloud.com/connect?' + params
+				console.log('https://soundcloud.com/connect?' + params)
+			}
+		}
+		$.getJSON("https://api.soundcloud.com/me.json?oauth_token=" + accessTokenSC)
+		.done(function gotMyself(user) {
+			console.log("Start graph search for user " + user.username)
+			rootID = user.id
+			users[rootID] = new User(rootID, user)
+			// start traveling down the tree
+			iterateSounds(rootID,0)
+			// make graph visible
+			$('#path_container').show()
+		})
+	}
 
-	console.log(location.href)
 
 	// START HERE
+
+	// check if user is being redirect from SC or oauth code is in store
+	// if (oauthCode) {
+	// 	// store code
+	// 	if(typeof(Storage)!=="undefined") {
+	// 		localStorage.SC_oauthCode=oauthCode
+	// 	}
+	// } else {
+	// 	// try to retrieve code
+	// 	if(typeof(Storage)!=="undefined") {
+	// 		oauthCode = localStorage.SC_oauthCode
+	// 	}
+	// }
+
+
+
+	// get access token to use SC API
+	// var accessTokenSC = localStorage.accessTokenSC
+	// if (!accessTokenSC) {
+	// 	$.post('https://api.soundcloud.com/oauth2/token', {
+	// 		'client_id': SOUNDCLOUD_CLIENT_ID,
+	// 		'client_secret': SOUNDCLOUD_CLIENT_SECRET,
+	// 		'redirect_uri': SOUNDCLOUD_OAUTH_REDIRECT_URL,
+	// 		'grant_type': 'authorization_code',
+	// 		'code': oauthCode
+	// 	}).fail(function (data, status, jqXHR) {
+	// 		console.log(data)
+	// 	}).done(function (data, status, jqXHR) {
+	// 		if (typeof(data) == 'object' && 'access_token' in data) {
+	// 			accessTokenSC = data['access_token']
+	// 			localStorage.accessTokenSC = accessTokenSC
+	// 			getData(accessTokenSC)
+	// 		}
+	// 	})
+	// } else {
+	// 	getData(accessTokenSC)
+	// }
+
+	// function getData(accessTokenSC) {
+	// 		$.get("https://api.soundcloud.com/me.json?oauth_token=" + accessTokenSC)
+	// 		.done(function(resp) {
+	// 			console.log(resp)
+	// 		})
+	// }
+	
 
 	// display "Loading"
     var mcp = HalfViz("#halfviz")
@@ -347,7 +451,8 @@ $(document).ready(function() {
 	setTimeout(function() {	$(window).resize()},7500)
 	writeGraphSource()
 
-	startWithOAuth()
+	startWithOAuthUser()
+	// startWithOAuth()
 	// startWithId('emeli-st-rmer')
 	// emeli-st-rmer
 	// eleonore-van-roosendaal
