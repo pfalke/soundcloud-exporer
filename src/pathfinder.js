@@ -295,7 +295,14 @@ $(document).ready(function() {
 		$.each(connectedUsers, function(index, userId) {
 			iterateSounds(userId, degree)
 		})
+	}
 
+	function logVisit(user) {
+		$.post('/log', {
+			'id': user.id,
+			'username': ('username' in user) ? user.username : '',
+			'fullname': ('fullname' in user) ? user.fullname : ''
+		})
 	}
 
 	function startWithOAuth() {
@@ -389,6 +396,8 @@ $(document).ready(function() {
 			iterateSounds(rootID,0)
 			// make graph visible
 			$('#path_container').show()
+			// log the visit
+			logVisit(user)
 		})
 	}
 
