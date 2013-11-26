@@ -305,34 +305,6 @@ $(document).ready(function() {
 		})
 	}
 
-	function startWithOAuth() {
-		// parameters for testing on local machine
-		if (document.domain.indexOf('localhost') != -1) {
-			SOUNDCLOUD_CLIENT_ID = 'f90fa65cc94d868d957c0b529c5ecc3d'
-			SOUNDCLOUD_OAUTH_REDIRECT_URL = 'http://localhost:16081/callback.html'
-		}
-		// connect to Soundcloud
-		SC.initialize({
-			client_id: SOUNDCLOUD_CLIENT_ID,
-			redirect_uri: SOUNDCLOUD_OAUTH_REDIRECT_URL,
-		});
-		SC.connect(function(){
-			SC.get("/me.json", function(user, error){
-				if(error){
-					console.log("Error: " + error.message)
-				}else{
-					console.log("Start graph search for user " + user.username)
-					rootID = user.id
-					users[rootID] = new User(rootID, user)
-					// start traveling down the tree
-					iterateSounds(rootID,0)
-					// make graph visible
-					$('#path_container').show()
-				}
-			})
-		})
-	}
-
 	function startWithId(id) {
 		$.getJSON('https://api.soundcloud.com/users/'+id+
 		'.json?client_id='+SOUNDCLOUD_CLIENT_ID).done(function(user) {
