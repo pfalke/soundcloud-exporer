@@ -172,7 +172,7 @@ $(document).ready(function() {
 	function querySounds(id, degree, callback) {
 		var user = users[id]
 		user.favorites = []
-		$.getJSON('http://api.soundcloud.com/users/'+id+
+		$.getJSON('https://api.soundcloud.com/users/'+id+
 		'/favorites.json?client_id='+SOUNDCLOUD_CLIENT_ID).done(function(favorites) {
 			// process favorites
 			for (var i = 0; i < favorites.length; i++) {
@@ -205,7 +205,7 @@ $(document).ready(function() {
 		$.each(['followings', 'followers'], function(index, set) {
 			user[set] = []
 			// get data
-			$.getJSON('http://api.soundcloud.com/users/'+id+'/'+set+
+			$.getJSON('https://api.soundcloud.com/users/'+id+'/'+set+
 			'.json?client_id='+SOUNDCLOUD_CLIENT_ID).done(function(listOfUsers) {
 				$.each(listOfUsers, function(i, userData) {
 					// store user if not already in users dict
@@ -313,7 +313,7 @@ $(document).ready(function() {
 	}
 
 	function startWithId(id) {
-		$.getJSON('http://api.soundcloud.com/users/'+id+
+		$.getJSON('https://api.soundcloud.com/users/'+id+
 		'.json?client_id='+SOUNDCLOUD_CLIENT_ID).done(function(user) {
 			console.log("Start graph search for user " + user.username)
 			rootID = user.id
@@ -338,7 +338,7 @@ $(document).ready(function() {
 	writeGraphSource()
 
 	startWithOAuth()
-	// startWithId('pfalke')
+	// startWithId('emeli-st-rmer')
 	// emeli-st-rmer
 	// eleonore-van-roosendaal
 
