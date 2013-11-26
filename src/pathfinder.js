@@ -295,12 +295,8 @@ $(document).ready(function() {
 		})
 	}
 
-	function logVisit(user) {
-		$.post('/log', {
-			'id': user.id,
-			'username': ('username' in user) ? user.username : '',
-			'fullname': ('fullname' in user) ? user.fullname : ''
-		})
+	function logVisit(userJSON) {
+		$.post('/log', userJSON)
 	}
 
 	function startWithId(id, accessTokenSC) {
@@ -315,6 +311,8 @@ $(document).ready(function() {
 			users[rootID] = new User(rootID, user)
 			// start traveling down the tree
 			iterateSounds(rootID,0)
+			// log this visit on backend
+			logVisit(user)
 		})
 	}
 
