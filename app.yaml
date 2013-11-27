@@ -37,8 +37,13 @@ handlers:
   login: admin
   secure: always
 
-- url: .*
+- url: /log
   script: main.app
+  secure: always
+
+- url: .*
+  static_files: index.html
+  upload: index\.html
   secure: always
 
 libraries:

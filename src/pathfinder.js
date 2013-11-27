@@ -358,9 +358,19 @@ $(document).ready(function() {
 		}
 	}
 
+	function start() {
+		if (location.pathname.length > 1) {
+			id = location.pathname.substring(1)
+			console.log('guessing user id is' +id)
+			startWithId(id)
+		} else {
+			startWithOAuthUser()
+			console.log('going with oauth')
+		}
+	}
+
 
 	// START HERE
-
 
 	// display "Loading"
     var mcp = HalfViz("#halfviz")
@@ -372,7 +382,8 @@ $(document).ready(function() {
 	setTimeout(function() {	$(window).resize()},7500)
 	writeGraphSource()
 
-	startWithOAuthUser()
+	start()
+
 	// startWithId('emeli-st-rmer')
 	// emeli-st-rmer
 	// eleonore-van-roosendaal
