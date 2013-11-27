@@ -1,0 +1,124 @@
+html {
+  max-width: 1100px;
+  margin: 0 auto;
+}
+
+body {
+	font-family: Source Sans Pro;
+}
+
+#navbar > * {
+	display: inline-block;	
+}
+
+#logout {
+	float: right;
+}
+
+#navspacer {
+	display: block;
+	clear: both;
+}
+
+#canvas_container {
+	max-width: 614px;
+}
+
+#canvas_container, #kompass_editor {
+	display: inline-block;
+	vertical-align: top;
+}
+
+#changetextarea {
+	display: none;
+	border-style: solid;
+	border-width: 10px;
+	border-color: rgb(241, 137, 24); 
+	border-radius: 5px;
+	padding: 10px;
+}
+
+.changetext {
+    margin: 0;
+}
+
+textarea, input {
+	font-family: Source Sans Pro;
+}
+
+form#newkompass > * {
+	display: inline-block;
+}
+
+#changelabelbutton {
+	margin: 10px 0;
+}
+
+.button {
+	color:#fff; 
+	background-color:rgb(241, 137, 24); 
+	border-radius: 3px;
+	text-align: center;
+	/*margin-left: 10px;*/
+	cursor: pointer;
+	padding: 1px 5px;
+	display: inline-block;
+}
+
+#publishbutton {
+	width: 51px;
+}
+
+.table_wrap {
+	display: inline-block;
+	padding-top: 20px;
+	padding-right: 60px;
+	vertical-align: top;
+}
+
+.table_wrap:last-child {
+	padding-right: 0px;
+}
+
+table {
+	margin-bottom:1.4em; 
+	border-collapse:separate; 
+	border:0;
+	table-layout: fixed;}
+th {font-weight:bold; 
+	font-size:110%; 
+	color:#fff; 
+	background-color:#008bc0; 
+	height:29px; text-transform:capitalize; padding:0 10px; 
+	vertical-align:middle;}
+
+.namecell {
+	max-width: 245px;
+}
+
+.datacell {
+	text-align: center;
+}
+
+thead tr, tfoot tr {background:none transparent;}
+thead th {border-left:1px solid transparent;}
+thead th:first-child {border-left:none;}
+th:last-of-type, td:last-of-type {border-right:0}
+td {color:#4f4f4f; 
+	border-bottom:1px solid #bfbfbf; 
+	font-size:14px; 
+	padding:9px 10px; 
+	vertical-align:top;
+	white-space:nowrap;
+	overflow: hidden;
+}
+td.wrapped {
+	white-space: normal;
+	max-width: 400px;
+}
+tfoot td {font-style:italic;}
+caption {margin:0 0 -3px 0; padding:6px 10px; color:#333; font-size:16px; border-bottom:1px solid #aaa; text-transform:capitalize;}
+/*tr:nth-child(odd) {background:#eee;}
+tr:nth-child(even) {background:#fff;}*/
+tr:last-child td {border-bottom:none;}
+tr:hover {background:#e2f4fe; color:#333;}

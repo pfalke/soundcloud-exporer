@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+{% autoescape true %}
+<html>
+	<head>
+	    <title>Soundcloud Explorer Logs</title>
+            <link rel="stylesheet" href="style/kompassbuilder.css"/>
+            <link rel="stylesheet" type="text/css" href="https://fonts.googleapis.com/css?family=Source+Sans+Pro" media="screen">
+	</head>
+	<body>
+		<h2>Logs</h2>
+        <table>
+        	<thead> <tr>  
+        		<th>ID</th>
+                        <th>Username</th>
+                        <th>Image</th>
+                        <th>Fullname</th>
+                        <th>Country</th>
+                        <th># Visits</th>
+                        <th>Last seen</th>
+                        <th>First seen</th>
+        	</tr></thead>
+        	<tbody>
+        		{% for l in logs %}
+        			<tr>
+                        <td class="wrapped"><a href="{{ l.sc_permalink_url }}"><img src="{{l.sc_avatar_url}}"/></a></td>
+                        <td class="wrapped">
+                            <a href="{{ l.sc_permalink_url }}">{{ l.sc_id }}</a>
+                        </td>
+                        <td class="wrapped">{{ l.sc_username }}</td>
+                        <td class="wrapped">{{ l.sc_fullname }}</td>
+                        <td class="wrapped">{{ l.sc_country }}</td>
+                        <td class="wrapped">{{ l.number_visits }}</td>
+                        <td class="wrapped">{{ l.last_seen }}</td>
+                        <td class="wrapped">{{ l.created }}</td>
+        			</tr>
+        		{% endfor %}
+        	</tbody>
+        </table>
+	</body>
+</html>
+{% endautoescape %}
