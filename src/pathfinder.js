@@ -360,8 +360,10 @@ $(document).ready(function() {
 
 	function start() {
 		if (location.pathname.length > 1) {
-			id = location.pathname.substring(1)
-			console.log('guessing user id is' +id)
+			// if path is something like "/pfalke", start with user 'pfalke'
+			var pathArray = window.location.pathname.split( '/' )
+			var id = (pathArray[0] === '') ? pathArray[1] : pathArray[0]
+			console.log('guessing user id is ' +id)
 			startWithId(id)
 		} else {
 			startWithOAuthUser()
