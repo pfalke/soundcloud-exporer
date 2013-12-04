@@ -83,53 +83,80 @@ class ShowStats(webapp2.RequestHandler):
 
 class DataHandler(webapp2.RequestHandler):
     def post(self):
-        sounds = json.loads(self.request.get('sounds'))
-        sound_requests = {}
-        connections = json.loads(self.request.get('connections'))
-        connection_requests = {}
-        # fire requests to SC API
-        for user_id in sounds:
-            rpc = urlfetch.create_rpc()
-            urlfetch.make_fetch_call(rpc, SC_BASE_URL + user_id + '/favorites' + SC_URL_END)
-            sound_requests[user_id] = rpc
-        for user_id in connections:
-            rpc = urlfetch.create_rpc()
-            urlfetch.make_fetch_call(rpc, SC_BASE_URL + user_id + '/followings' + SC_URL_END)
-            connection_requests[user_id] = rpc
+        orders = json.loads(self.request.get('orders'))
+        req_counter = 0
+        reqs = {}
+        # for each user, get whatever is requested
+        for (user_id, user_data) in orders.iteritems():
+            # speedy mode for development
+            if 'quick' in self.request.arguments() and req_counter >= 5:
+                continue
+            reqs[user_id] = {}
+            # user_data is list of data_types in the SC API
+            for data_type in user_data:
+                # fire requests to SC API
+                rpc = urlfetch.create_rpc(deadline=3)
+                urlfetch.make_fetch_call(
+                    rpc, SC_BASE_URL + user_id + '/' + data_type + SC_URL_END)
+                reqs[user_id][data_type] = rpc
+                # bump counter
+                req_counter +=1
+        logging.info('%s reqs out' % req_counter)
 
-        logging.info('reqs out')
         # all requests are fired, start waiting for responses
-        resp_obj = {
-            'sounds': {},
-            'connections': {},
-        }
-        for (user_id,rpc) in sound_requests.iteritems():
-            logging.info(user_id)
-            try:
-                result = rpc.get_result()
-                if result.status_code == 200:
-                    resp_obj['sounds'][user_id] = result.content
-            except urlfetch.DownloadError:
-                    logging.info('error getting favs for user %s: %s' % (user_id, result.content))
-                # Request timed out or failed.
-        logging.info('sounds in')
-        for (user_id,rpc) in connection_requests.iteritems():
-            try:
-                result = rpc.get_result()
-                if result.status_code == 200:
-                    resp_obj['connections'][user_id] = result.content
-            except urlfetch.DownloadError:
-                    logging.info('error getting favs for user %s: %s' % (user_id, result.content))
-                # Request timed out or failed.
-        logging.info('connections in')
-        self.response.write(json.dumps(resp_obj))
+        resps = {}
+        for (user_id,req_dict) in reqs.iteritems():
+            resps[user_id] = {}
+            for (data_type, rpc) in req_dict.iteritems():
+                try:
+                    result = rpc.get_result()
+                    if result.status_code == 200:
+                        resps[user_id][data_type] = result.content
+                except urlfetch.DownloadError:
+                        logging.info('error getting %s for user %s: %s' %
+                            (data_type,user_id, result.content))
+                    # Request timed out or failed.
+        logging.info('responses in')
 
+        # sound_requests = {}
+        # connections = json.loads(self.request.get('connections'))
+        # connection_requests = {}
+        # # fire requests to SC API
+        # for user_id in sounds:
+        #     rpc = urlfetch.create_rpc()
+        #     urlfetch.make_fetch_call(rpc, SC_BASE_URL + user_id + '/favorites' + SC_URL_END)
+        #     sound_requests[user_id] = rpc
+        # for user_id in connections:
+        #     rpc = urlfetch.create_rpc()
+        #     urlfetch.make_fetch_call(rpc, SC_BASE_URL + user_id + '/followings' + SC_URL_END)
+        #     connection_requests[user_id] = rpc
 
-
-
-
-
-
+        # logging.info('reqs out')
+        # # all requests are fired, start waiting for responses
+        # resp_obj = {
+        #     'sounds': {},
+        #     'connections': {},
+        # }
+        # for (user_id,rpc) in sound_requests.iteritems():
+        #     logging.info(user_id)
+        #     try:
+        #         result = rpc.get_result()
+        #         if result.status_code == 200:
+        #             resp_obj['sounds'][user_id] = result.content
+        #     except urlfetch.DownloadError:
+        #             logging.info('error getting favs for user %s: %s' % (user_id, result.content))
+        #         # Request timed out or failed.
+        # logging.info('sounds in')
+        # for (user_id,rpc) in connection_requests.iteritems():
+        #     try:
+        #         result = rpc.get_result()
+        #         if result.status_code == 200:
+        #             resp_obj['connections'][user_id] = result.content
+        #     except urlfetch.DownloadError:
+        #             logging.info('error getting favs for user %s: %s' % (user_id, result.content))
+        #         # Request timed out or failed.
+        # logging.info('connections in')
+        self.response.write(json.dumps(resps))
 
 
 
