@@ -32,7 +32,7 @@ handlers:
   upload: splashpage\.html
   secure: always
 
-- url: /showstats
+- url: /(showstats|getData)
   script: main.app
   login: admin
   secure: always
