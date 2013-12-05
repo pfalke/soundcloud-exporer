@@ -405,7 +405,7 @@ $(document).ready(function() {
 	}
 
 	function logVisit(userJSON) {
-		$.post('/log', userJSON)
+		$.post('/log',userJSON)
 	}
 
 	// get a URL query paramter. used to extract oauth code
