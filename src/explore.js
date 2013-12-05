@@ -13,6 +13,9 @@ $(document).ready(function() {
 		SOUNDCLOUD_CLIENT_SECRET = '9a7b216fc0874d85e1f9193f572146ac'
 	}
 
+	var dataUrl = 'https://soundcloud-explore.appspot.com/getData'
+	// var dataUrl = '/getData'
+
 	// CREATE GRAPH OUTPUT
 
 	// input is graph in '->' form, send this to halfviz
@@ -35,11 +38,16 @@ $(document).ready(function() {
 
 	// MANAGE GRAPH DATA
 
-	var finalDegree = 1 // how much data to fetch
+	var finalDegree = 2 // how much data to fetch (degrees of separation from root user)
 
 	var users = {} // the users that have been processed, indexed by ID
 	var sounds = {} // the tracks that have been sighted, indexed by ID
 	var rootID = 'pfalke' // soundcloud id of the root user for tree
+
+	var dataTypes = {
+		'connectedUsers': ['followings', 'followers'],
+		'sounds': ['favorites', 'tracks']
+	}
 
 	// a user, local copy of data pulled from Soundcloud
 	function User(id, degree, userData) {
@@ -54,59 +62,15 @@ $(document).ready(function() {
 			'connectedUsers': false
 		}
 
-		this.sounds = []
+		this.sounds = [] // favorites, tracks, etc
+		this.followers = []
+		this.followings = []
 	}
 
 	function Sound(id, sound_obj) {
 		this.id = id
 		if (sound_obj) this.soundData = sound_obj
 		this.connectedUsers = [] // users that have favorited etc this sound
-
-		// add a user that has favorited etc this sound to the list
-		this.connectUser = function connectUser(user) {
-			if (this.connectedUsers.indexOf(user) == -1)
-				this.connectedUsers.push(user)
-		}
-
-		// writes source for rendered graph. checks criterion first
-		this.writeEdges = function() {
-			// check if this edge is to appear in the graph
-			if (this.connectedUsers.length<minNodeDegree) return ''
-			// write the output
-			var output = ''
-			var title = this.soundData.title
-			$.each(this.connectedUsers, function(index, user) {
-				output += user.userData.username + ' -> ' + title + '\n'
-			})
-			return output
-		}
-	}
-
-	// check for which users <= degree we haven't queried the sounds
-	function loadSoundsAtMaxDegree(degree) {
-		var url = 'https://soundcloud-explore.appspot.com/getData'
-		// var url = '/getData'
-		var soundTypes = ['favorites', 'tracks']
-		var user
-		var idsToQuery = {}
-		var counter = 0
-		for (var userId in users) {
-			user = users[userId]
-			if (!user.queried.sounds && user.degree<=degree) {
-				idsToQuery[userId] = soundTypes
-				counter +=1
-			}
-		}
-		// call internal API to make SC calls
-		var now = new Date()
-		$.post(url, {
-			'orders' : JSON.stringify(idsToQuery),
-			'quick': 'true' // for local testing, only does few requests
-		}).done(function(resp) {
-			var newDate = new Date()
-			console.log('took ' + (newDate - now)+ 'ms to get sounds for ' + counter + ' users.')
-			storeSounds(resp, degree)
-		})
 	}
 
 	// create Sound object for newly found songs, associate sounds with User objects, signal that sounds were loaded
@@ -134,12 +98,76 @@ $(document).ready(function() {
 					sounds[soundObj.id].connectedUsers.push(user)
 				}
 			}
-			console.log(user.sounds)
+		}
+		// start retrieving connectedUsers unless we reached finalDegree
+		if (degree<finalDegree) {
+			loadDataAtMaxDegree('connectedUsers' ,degree)
 		}
 	}
 
-	// for which users < degree we haven't queried the followers
+	// create User object for newly found users, associate users amongst each other, signal that users were loaded
+	function storeConnections(usersJSON, degree) {
+		var resp = JSON.parse(usersJSON)
+		var userId, user, data, dataObj, dataType, dataList, i, otherType
+		for (userId in resp) {
+			// mark the user as queried, delete references that were made so far to avoid duplicates
+			user = users[userId]
+			user.queried.connectedUsers = true
+			user.followings = []
+			user.followers = []
+			data = resp[userId]
+			// iterate all lists (favorites, tracks)
+			for (dataType in data) {
+				otherType = (dataType == 'followers') ? 'followings' : 'followers'
+				dataList = JSON.parse(data[dataType])
+				console.log(dataType)
+				console.log(dataList.length)
+				for (i= 0; i<dataList.length; i++) {
+					dataObj = dataList[i]
+					// create new user if it doesn't exist
+					if (!(dataObj.id in users)) {
+						users[dataObj.id] = new User(dataObj.id, degree+1, dataObj)
+					}
+					// associate users with each other
+					user[dataType].push(users[dataObj.id])
+					users[dataObj.id][otherType].push(user)
+				}
+			}
+			console.log(user)
+		}
+		// start retrieving sounds unless we reached finalDegree
+		if (degree<finalDegree) {
+			loadDataAtMaxDegree('sounds' ,degree+1)
+		}
+	}
 
+	// for which users <= degree we haven't queried this dataType
+	function loadDataAtMaxDegree(dataType ,degree) {
+		var user
+		var idsToQuery = {}
+		var counter = 0
+		for (var userId in users) {
+			user = users[userId]
+			// check if degree OK and we have not queried this data for this user before
+			if (!user.queried[dataType] && user.degree<=degree) {
+				idsToQuery[userId] = dataTypes[dataType]
+				counter +=1
+			}
+		}
+		// call internal API to make SC calls
+		var now = new Date()
+		$.post(dataUrl, {
+			'orders' : JSON.stringify(idsToQuery),
+			'quick': 'true' // for local testing, only does few requests
+		}).done(function(resp) {
+			var newDate = new Date()
+			console.log('took ' + (newDate - now)+ 'ms to get '+ dataType +' for ' + counter + ' users.')
+			// process response
+			if (dataType == 'sounds') {storeSounds(resp, degree)}
+			else if (dataType == 'connectedUsers') {storeConnections(resp, degree)}
+		})
+
+	}
 
 
 
@@ -202,7 +230,8 @@ $(document).ready(function() {
 			rootID = user.id
 			users[rootID] = new User(rootID, 0, user)
 			// start traveling down the tree
-			loadSoundsAtMaxDegree(0)
+			// loadSoundsAtMaxDegree(0)
+			loadDataAtMaxDegree('sounds', 0)
 			// log this visit on backend
 			logVisit(user)
 		})
