@@ -21,6 +21,24 @@ $(document).ready(function() {
 
 
 	// CREATE GRAPH OUTPUT
+	var minConnectedUsers = 8 // how many connected users a sound needs to have to be relevant/displayed
+	var minRelevantSounds = 3 // how many relevant sounds a user needs to be connected to to be displayed
+
+	// user choices
+	var degreeConsidered = 1 // selected by explorer: users up to this degree are considered
+	$('.degreeButton').click(function(el) {
+		degreeConsidered = $(this).attr('degree')
+		determineGraphNodes()
+
+		// color buttons
+		$('.degreeButton').each(function(i, btn) {
+			if (!($(btn).attr("disabled"))) {
+				$(btn).removeClass('btn-primary').addClass('btn-warning')
+			}
+		})
+		$(this).removeClass('btn-warning').addClass('btn-primary')
+	})
+
 
 	// input is graph in '->' form, send this to halfviz
 	function updateGraph(src_text) {
@@ -34,9 +52,91 @@ $(document).ready(function() {
         $("#halfviz").find('textarea').val(src_text)
 	}
 
+	// prepare graph as string: [user] -> [sound]
+	function writeGraphSrc(soundList, userCounts) {
+		// write edges
+		var graphSrc = ''
+		$.each(soundList, function(index, sound) {
+			// check which users to connect to the node
+			$.each(sound.connectedUsersAtDegree(degreeConsidered), function(i, user) {
+				if (userCounts[user.userData.id]>= minRelevantSounds) {
+					graphSrc += user.userData.username + ' -> ' + sound.soundData.title + '\n'
+				}
+			})
+		})
 
+		// pass the source to the parser
+		if (graphSrc.length > 0) updateGraph(graphSrc)
+	}
 
+	// returns list of sounds to be included in graph and dict giving how many of these sounds each user is connecteed to
+	var determineGraphNodes = function() {
+		var now = new Date()
+		// check how often each user appers - don't want users that appear only once
+		var soundsInGraph
+		var userCounts
+		var bumpUserCount = function(index, user) {
+			var id =user.userData.id
+			if (id in userCounts) {
+				userCounts[id] +=1
+			} else {
+				userCounts[id] = 1
+			}
+		}
 
+		// get sounds that have high enough degree for the graph
+		function getSoundsForGraphAndUserCounts() {
+			soundsInGraph = []
+			userCounts = {}
+			for (var soundId in sounds) {
+				if (sounds[soundId].connectedUsersAtDegree(degreeConsidered).length>=minConnectedUsers) {
+					soundsInGraph.push(sounds[soundId])
+					// bump count for each user associated with sound
+					$.each(sounds[soundId].connectedUsersAtDegree(degreeConsidered), bumpUserCount)
+				}
+			}
+		}
+
+		getSoundsForGraphAndUserCounts()
+
+		// there should be 5-15 sounds in the graph. adjust parameters as long as it makes sense
+		while (soundsInGraph.length> 15 && minConnectedUsers<25) {
+			minConnectedUsers +=1
+			console.log('increased nodeDegree to '+ minConnectedUsers +
+				', had ' + soundsInGraph.length + ' sounds')
+			getSoundsForGraphAndUserCounts()
+		}
+		while (soundsInGraph.length< 5 && minConnectedUsers>3) {
+			minConnectedUsers -=1
+			console.log('decreased nodeDegree to '+ minConnectedUsers +
+				', had ' + soundsInGraph.length + ' sounds')
+			getSoundsForGraphAndUserCounts()
+		}
+
+		// there should be 5-15 users in the graph. adjust parameters as long as it makes sense
+		var bigUsers
+		var computeNumerBigUsers = function() {
+			bigUsers = 0
+			for (var i in userCounts) {
+				if (userCounts[i]>minRelevantSounds) {bigUsers+=1}
+			}
+		}
+		computeNumerBigUsers()
+		while (bigUsers<5 && minRelevantSounds>1) {
+			minRelevantSounds -=1
+			computeNumerBigUsers()
+		}
+		while (bigUsers>8 && minRelevantSounds<15) {
+			minRelevantSounds +=1
+			computeNumerBigUsers()
+		}
+
+		writeGraphSrc(soundsInGraph, userCounts)
+		// update again in .5 sec
+		// setTimeout(writeGraphSource, 800)
+		var then = new Date()
+		console.log('took ' + (then-now) + 'ms to determine graph')
+	}
 
 
 
@@ -50,7 +150,7 @@ $(document).ready(function() {
 
 	// MANAGE GRAPH DATA
 
-	var finalDegree = 3 // how much data to fetch (degrees of separation from root user)
+	var finalDegree = 5 // how much data to fetch (degrees of separation from root user)
 
 	var users = {} // the users that have been processed, indexed by ID
 	var sounds = {} // the tracks that have been sighted, indexed by ID
@@ -84,11 +184,28 @@ $(document).ready(function() {
 	function Sound(id, sound_obj) {
 		this.id = id
 		if (sound_obj) this.soundData = sound_obj
-		this.connectedUsers = [] // users that have favorited etc this sound
+		this.connectedUsers = {
+			'0': [], // users at degree ... that have favorited etc this sound
+			'1': [],
+			'2': [],
+			'3': [],
+			'4': [],
+			'5': [],
+		}
+
+		// returns list of users up to given degree have favorited etc this sound
+		this.connectedUsersAtDegree = function(degree) {
+			var connectedUsers = []
+			for (var i=0; i<=degree; i++) {
+				connectedUsers = connectedUsers.concat(this.connectedUsers[i])
+			}
+			return connectedUsers
+		}
 	}
 
 	// create Sound object for newly found songs, associate sounds with User objects, signal that sounds were loaded
 	function storeSounds(soundJSON, degree) {
+		var now = new Date()
 		var resp = JSON.parse(soundJSON)
 		var user, data, soundObj, soundType, soundList, i
 		for (var userId in resp) {
@@ -109,7 +226,7 @@ $(document).ready(function() {
 					}
 					// associate sound object with user and vice versa
 					user.sounds.push(sounds[soundObj.id])
-					sounds[soundObj.id].connectedUsers.push(user)
+					sounds[soundObj.id].connectedUsers[degree].push(user)
 
 					// sounds in common with root user are cool
 					if (users[rootID].sounds.indexOf(sounds[soundObj.id])>=0) {
@@ -118,14 +235,25 @@ $(document).ready(function() {
 				}
 			}
 		}
+		// enable button for this degree to allow user to look at data
+		if (degree>1) {
+			$('#btnDegree'+degree).addClass('btn-warning').removeAttr('disabled')
+		}
+
 		// start retrieving connectedUsers unless we reached finalDegree
 		if (degree<finalDegree) {
 			loadDataAtMaxDegree('connectedUsers' ,degree)
 		}
+
+		var then = new Date()
+		console.log('took ' + (then-now) + 'ms to store sounds')
+		// rewrite graph
+		determineGraphNodes()
 	}
 
 	// create User object for newly found users, associate users amongst each other, signal that users were loaded
 	function storeConnections(usersJSON, degree) {
+		var now = new Date()
 		var resp = JSON.parse(usersJSON)
 		var userId, user, data, dataObj, dataType, dataList, i, otherType
 		for (userId in resp) {
@@ -151,10 +279,14 @@ $(document).ready(function() {
 				}
 			}
 		}
+		var then = new Date()
+		console.log('took ' + (then-now) + 'ms to store connections')
+
+
 		// start retrieving sounds unless we reached finalDegree
-		if (degree<finalDegree) {
-			loadDataAtMaxDegree('sounds' ,degree+1)
-		}
+		// if (degree<finalDegree) {
+		loadDataAtMaxDegree('sounds' ,degree+1)
+		// }
 	}
 
 	// for which users <= degree we haven't queried this dataType

@@ -7,6 +7,7 @@
     <!-- // <script src="jquery-1.9.1.min.js"></script> -->
 
     <link rel="stylesheet" href="style/halfviz.css" type="text/css" charset="utf-8">
+    <link rel="stylesheet" href="style/bootstrap.min.css" type="text/css" charset="utf-8">
 
     <title>Soundcloud Pathfinder</title>
 </head>
@@ -160,19 +161,35 @@
     <div id="halfviz">
       <canvas id="viewport" width="800" height="600"></canvas>
       <div id="editor">
-        <div class="io">
+        <p>
+          <button id="btnDegree1" degree="1" class="btn btn-primary degreeButton">Degree 1</button><br>
+          <button id="btnDegree2" degree="2" class="btn degreeButton" disabled>Degree 2</button><br>
+          <button id="btnDegree3" degree="3" class="btn degreeButton" disabled>Degree 3</button><br>
+          <button id="btnDegree4" degree="4" class="btn degreeButton" disabled>Degree 4</button><br>
+          <button id="btnDegree5" degree="5" class="btn degreeButton" disabled>Degree 5</button><br>
+        </p>
+        <p>
+          <input type="checkbox"/>Keep it fresh<br>
+          <input type="checkbox"/>Give me new people
+        </p>
+        <p>
+          [date selector]
+        </p>
+
+        <div class="io" style="display:none;">
           <div class="ctrl"><a href="#" class="new">clear</a><a class="examples" href="#">examples <span></span></a></div>
           <ul class="dialog"></ul>
         </div>
-        <textarea id="code"></textarea>  
+        <textarea id="code" style="display:none;"></textarea>  
       </div>
       <div id="grabber"></div>
     </div>  
 
     <div id="dashboard">
-      <a href="#" class="about active"><div class="popup"><img src="style/nub.png">About</div>about halfviz</a>
-      <a href="#" class="help">syntax help</a>
-      <ul class="controls">
+      <h3>Soundcloud Explore</h3>
+      <a href="#" class="about active" style="display:none;"><div class="popup"><img src="style/nub.png">About</div>about halfviz</a>
+      <a href="#" class="help" style="display:none;">syntax help</a>
+      <ul class="controls" style="display:none;">
         <li class="stiffness">spring tension <span class="frob">10,000</span></li>
         <li class="repulsion">node repulsion <span class="frob">10,000</span></li>
         <li class="friction">friction <span class="frob">20%</span></li>

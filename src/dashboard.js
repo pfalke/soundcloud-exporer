@@ -1,3 +1,4 @@
+/*jshint asi: true*/
 (function(){
   
   //
@@ -42,8 +43,8 @@
         dom.find('img').mousedown(function(){  return false })
         dom.find('.toggle').click(that.toggleGravity)
 
-        $('.help').click(that.showHelp)
-        dom.find('.about').click(that.showIntro)
+        // $('.help').click(that.showHelp)
+        // dom.find('.about').click(that.showIntro)
         $("#intro h1 a").click(that.hideIntro)
         
         $(that.helpPanel).bind('closed', that.hideHelp)

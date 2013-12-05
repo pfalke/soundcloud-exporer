@@ -89,9 +89,12 @@ a.update{
   top:10px;
   left:10px;
   right:10px;
-  background:#eeeee2 url(halfviz.png) 10px 8px no-repeat;
+  background:#eeeee2; /*url(halfviz.png) 10px 8px no-repeat;*/
   border-radius:4px;
   padding:0;
+}
+#dashboard h3 {
+  padding-left: 20px;
 }
 
 #dashboard a.about{
