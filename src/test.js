@@ -31,12 +31,14 @@ var users = ["16730", "884726", "4406624", "1279586", "29476363", "216863", "266
 
 var requestData = {}
 for (var u in users) {
-	requestData[u] = cons.concat(sounds)
+	requestData[users[u]] = cons.concat(sounds)
 }
 var now = new Date()
-$.post('/getData', {
+var url = 'https://soundcloud-explore.appspot.com/getData'
+// var url = '/getData'
+$.post(url, {
 	'orders' : JSON.stringify(requestData),
-	'quick': 'true'
+	'quicks': 'true'
 }).done(function(resp) {
 	var before = new Date()
 	console.log(JSON.parse(resp))
