@@ -39,6 +39,13 @@ $(document).ready(function() {
 		$(this).removeClass('btn-warning').addClass('btn-primary')
 	})
 
+	// true: display only sounds that are not connected to root user
+	var keepFresh = false
+	$('#keepFresh').change(function() {
+		keepFresh = ($(this).attr('checked') == 'checked')
+		determineGraphNodes()
+	})
+
 
 	// input is graph in '->' form, send this to halfviz
 	function updateGraph(src_text) {
@@ -89,7 +96,11 @@ $(document).ready(function() {
 			soundsInGraph = []
 			userCounts = {}
 			for (var soundId in sounds) {
-				if (sounds[soundId].connectedUsersAtDegree(degreeConsidered).length>=minConnectedUsers) {
+				// criteria for inclusion of sound:
+				// (if keepFresh only sounds not connected to root user)
+				// sound needs to have enough connected users below degreeConsidered
+				if ((!keepFresh || users[rootID].sounds.indexOf(sounds[soundId])== -1) &&
+					sounds[soundId].connectedUsersAtDegree(degreeConsidered).length>=minConnectedUsers) {
 					soundsInGraph.push(sounds[soundId])
 					// bump count for each user associated with sound
 					$.each(sounds[soundId].connectedUsersAtDegree(degreeConsidered), bumpUserCount)
