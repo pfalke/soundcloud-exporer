@@ -75,7 +75,7 @@ class LogHandler(webapp.RequestHandler):
 
 class ShowStats(webapp2.RequestHandler):
     def get(self):
-        logs = Log.query().fetch(1000)
+        logs = Log.query().order(-Log.last_seen).fetch(1000)
         templ_val = {'logs': logs}
         template = JINJA_ENVIRONMENT.get_template('Logs.html')
         self.response.write(template.render(templ_val))

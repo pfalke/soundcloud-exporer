@@ -46,6 +46,12 @@ $(document).ready(function() {
 		determineGraphNodes()
 	})
 
+	// true: display only users that are not connected to root user
+	var newPeople = false
+	$('#newPeople').change(function() {
+		newPeople = ($(this).attr('checked') == 'checked')
+		determineGraphNodes()
+	})
 
 	// input is graph in '->' form, send this to halfviz
 	function updateGraph(src_text) {
@@ -72,8 +78,14 @@ $(document).ready(function() {
 			})
 		})
 
+		if (graphSrc.length === 0) {
+			graphSrc = 'No data - remove some of those filters!'
+		}
+
+		console.log(graphSrc)
+
 		// pass the source to the parser
-		if (graphSrc.length > 0) updateGraph(graphSrc)
+		updateGraph(graphSrc)
 	}
 
 	// returns list of sounds to be included in graph and dict giving how many of these sounds each user is connecteed to
@@ -102,6 +114,7 @@ $(document).ready(function() {
 				if ((!keepFresh || users[rootID].sounds.indexOf(sounds[soundId])== -1) &&
 					sounds[soundId].connectedUsersAtDegree(degreeConsidered).length>=minConnectedUsers) {
 					soundsInGraph.push(sounds[soundId])
+					console.log(sounds[soundId].soundData.title)
 					// bump count for each user associated with sound
 					$.each(sounds[soundId].connectedUsersAtDegree(degreeConsidered), bumpUserCount)
 				}
@@ -124,11 +137,21 @@ $(document).ready(function() {
 			getSoundsForGraphAndUserCounts()
 		}
 
+		// if active, no users followed by root user are displayed. Therefore make their userCounts 0
+		if (newPeople) {
+			for (var j=0; j<users[rootID].followings.length; j++) {
+				userCounts[users[rootID].followings[j].id] = 0
+			}
+		}
+	
 		// there should be 5-15 users in the graph. adjust parameters as long as it makes sense
 		var bigUsers
 		var computeNumerBigUsers = function() {
 			bigUsers = 0
 			for (var i in userCounts) {
+				// criteria for user to be displayed:
+				// connected to enough relevant sound and (if active) not followed by root user
+				// (!newPeople || users[rootID].followings.indexOf(users[i]) == -1)
 				if (userCounts[i]>minRelevantSounds) {bigUsers+=1}
 			}
 		}
@@ -141,6 +164,8 @@ $(document).ready(function() {
 			minRelevantSounds +=1
 			computeNumerBigUsers()
 		}
+
+		console.log(soundsInGraph)
 
 		writeGraphSrc(soundsInGraph, userCounts)
 		// update again in .5 sec
@@ -438,6 +463,17 @@ $(document).ready(function() {
 	setTimeout(function() {	$(window).resize()},7500)
 
 	start()
+
+	// engineering
+	try {
+		if (window.chrome.loadTimes().wasFetchedViaSpdy) {
+			console.log('loaded via SPDY')
+		} else {
+			console.log('no SPDY')
+		}
+	} catch(e) {
+		console.log(e)
+	}
 
 	// startWithId('emeli-st-rmer')
 	// emeli-st-rmer
