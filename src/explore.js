@@ -16,6 +16,10 @@ $(document).ready(function() {
 	var dataUrl = 'https://soundcloud-explore.appspot.com/getData'
 	// var dataUrl = '/getData'
 
+
+
+
+
 	// CREATE GRAPH OUTPUT
 
 	// input is graph in '->' form, send this to halfviz
@@ -36,16 +40,24 @@ $(document).ready(function() {
 
 
 
+
+
+
+
+
+
+
+
 	// MANAGE GRAPH DATA
 
-	var finalDegree = 2 // how much data to fetch (degrees of separation from root user)
+	var finalDegree = 3 // how much data to fetch (degrees of separation from root user)
 
 	var users = {} // the users that have been processed, indexed by ID
 	var sounds = {} // the tracks that have been sighted, indexed by ID
 	var rootID = 'pfalke' // soundcloud id of the root user for tree
 
 	var dataTypes = {
-		'connectedUsers': ['followings', 'followers'],
+		'connectedUsers': ['followings'],
 		'sounds': ['favorites', 'tracks']
 	}
 
@@ -65,6 +77,8 @@ $(document).ready(function() {
 		this.sounds = [] // favorites, tracks, etc
 		this.followers = []
 		this.followings = []
+
+		this.coolSounds = [] // sounds in common with root user
 	}
 
 	function Sound(id, sound_obj) {
@@ -85,17 +99,22 @@ $(document).ready(function() {
 			// iterate all lists (favorites, tracks)
 			for (soundType in data) {
 				soundList = JSON.parse(data[soundType])
-				console.log(soundType)
-				console.log(soundList.length)
 				for (i= 0; i<soundList.length; i++) {
 					soundObj = soundList[i]
 					// create new sound if it doesn't exist
 					if (!(soundObj.id in sounds)) {
 						sounds[soundObj.id] = new Sound(soundObj.id, soundObj)
+					} else {
+						// console.log('sound exists')
 					}
 					// associate sound object with user and vice versa
 					user.sounds.push(sounds[soundObj.id])
 					sounds[soundObj.id].connectedUsers.push(user)
+
+					// sounds in common with root user are cool
+					if (users[rootID].sounds.indexOf(sounds[soundObj.id])>=0) {
+						user.coolSounds.push(sounds[soundObj.id])
+					}
 				}
 			}
 		}
@@ -120,8 +139,6 @@ $(document).ready(function() {
 			for (dataType in data) {
 				otherType = (dataType == 'followers') ? 'followings' : 'followers'
 				dataList = JSON.parse(data[dataType])
-				console.log(dataType)
-				console.log(dataList.length)
 				for (i= 0; i<dataList.length; i++) {
 					dataObj = dataList[i]
 					// create new user if it doesn't exist
@@ -133,7 +150,6 @@ $(document).ready(function() {
 					users[dataObj.id][otherType].push(user)
 				}
 			}
-			console.log(user)
 		}
 		// start retrieving sounds unless we reached finalDegree
 		if (degree<finalDegree) {
@@ -142,32 +158,45 @@ $(document).ready(function() {
 	}
 
 	// for which users <= degree we haven't queried this dataType
-	function loadDataAtMaxDegree(dataType ,degree) {
+	function loadDataAtMaxDegree(dataType, degree) {
 		var user
 		var idsToQuery = {}
 		var counter = 0
 		for (var userId in users) {
 			user = users[userId]
 			// check if degree OK and we have not queried this data for this user before
-			if (!user.queried[dataType] && user.degree<=degree) {
+			// check connected users only if user has enough cool sounds (more than his degree)
+			if (!user.queried[dataType] && user.degree<=degree &&
+				(dataType == 'sounds' || user.coolSounds.length>user.degree)) {
 				idsToQuery[userId] = dataTypes[dataType]
 				counter +=1
 			}
 		}
+		var c=0
+		for (var j in users) c+=1
+		console.log(c)
 		// call internal API to make SC calls
 		var now = new Date()
 		$.post(dataUrl, {
 			'orders' : JSON.stringify(idsToQuery),
-			'quick': 'true' // for local testing, only does few requests
+			'quicks': 'true' // for local testing, only does few requests
 		}).done(function(resp) {
 			var newDate = new Date()
-			console.log('took ' + (newDate - now)+ 'ms to get '+ dataType +' for ' + counter + ' users.')
+			console.log('took ' + (newDate - now)+ 'ms to get ' + dataType +
+				' for ' + counter + ' users at degree ' + degree + '.')
 			// process response
 			if (dataType == 'sounds') {storeSounds(resp, degree)}
 			else if (dataType == 'connectedUsers') {storeConnections(resp, degree)}
 		})
 
 	}
+
+
+
+
+
+
+
 
 
 
