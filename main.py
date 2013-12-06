@@ -1,8 +1,9 @@
 import webapp2
 from google.appengine.ext import webapp
 from google.appengine.ext import ndb
+from google.appengine.api import users
+
 import jinja2
-import users
 
 import logging
 import os
