@@ -16,6 +16,9 @@
     sys = arbor.ParticleSystem(2600, 512, 0.5)
     sys.renderer = Renderer("#viewport") // our newly created renderer will have its .init() method called shortly by sys...
     sys.screenPadding(20)
+    // turn on center gravity
+    sys.parameters({gravity:true})
+
     
     var _ed = dom.find('#editor')
     var _code = dom.find('textarea')
