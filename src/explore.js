@@ -72,6 +72,7 @@ $(document).ready(function() {
 		$.each(soundList, function(index, sound) {
 			// check which users to connect to the node
 			$.each(sound.connectedUsersAtDegree(degreeConsidered), function(i, user) {
+				graphSrc += sound.soundData.title + ' {color:#f60}\n' // sound nodes have orange background
 				if (userCounts[user.userData.id]>= minRelevantSounds) {
 					graphSrc += user.userData.username + ' -> ' + sound.soundData.title + '\n'
 				}
