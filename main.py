@@ -11,7 +11,7 @@ from google.appengine.api import urlfetch
 
 
 SC_BASE_URL = "https://api.soundcloud.com/users/"
-SC_URL_END = '.json?client_id=f90fa65cc94d868d957c0b529c5ecc3d'
+SC_URL_END = '.json?client_id=f90fa65cc94d868d957c0b529c5ecc3d&limit=200'
 
 JINJA_ENVIRONMENT = jinja2.Environment(
     loader=jinja2.FileSystemLoader(os.path.dirname(__file__)),
@@ -80,6 +80,11 @@ class ShowStats(webapp2.RequestHandler):
         template = JINJA_ENVIRONMENT.get_template('Logs.html')
         self.response.write(template.render(templ_val))
 
+        test = json.loads(json.dumps({'cool': 'shit'}))
+        t2 = {'a': test, 'b': [test,test]}
+        logging.info(json.dumps(t2)[:-1])
+        logging.info(json.dumps(t2))
+
 
 class DataHandler(webapp2.RequestHandler):
     def post(self):
@@ -89,8 +94,11 @@ class DataHandler(webapp2.RequestHandler):
         # for each user, get whatever is requested
         for (user_id, user_data) in orders.iteritems():
             # speedy mode for development
-            if 'quick' in self.request.arguments() and req_counter >= 5:
-                continue
+            if 'quick' in self.request.arguments() and req_counter >= 1:
+                break
+            if req_counter >= 150:
+                logging.info('skipping remaining requests')
+                break
             reqs[user_id] = {}
             # user_data is list of data_types in the SC API
             for data_type in user_data:
@@ -105,18 +113,32 @@ class DataHandler(webapp2.RequestHandler):
 
         # all requests are fired, start waiting for responses
         resps = {}
+        respJSON = "{"
+        setUserComma = False
         for (user_id,req_dict) in reqs.iteritems():
+            setDataComma = False
             resps[user_id] = {}
+            if setUserComma:
+                respJSON += ', '
+            respJSON += '"' + user_id + '": {'
             for (data_type, rpc) in req_dict.iteritems():
                 try:
                     result = rpc.get_result()
                     if result.status_code == 200:
-                        resps[user_id][data_type] = result.content
-                except urlfetch.DownloadError:
-                        logging.info('error getting %s for user %s: %s' %
-                            (data_type,user_id, result.content))
+                        resps[user_id][data_type] = result.content # json.loads(result.content)
+                        if setDataComma:
+                            respJSON += ', '
+                        respJSON += '"' + data_type + '": ' + result.content
+                        setDataComma = True
+                except urlfetch.DownloadError, e:
                     # Request timed out or failed.
+                    logging.info('error getting %s for user %s: %s' %
+                        (data_type,user_id, str(e)))
+            respJSON += '}'
+            setUserComma = True
         logging.info('responses in')
+        respJSON += "}"
+        logging.info(respJSON)
         self.response.headers.add_header("Access-Control-Allow-Origin", "*")
         self.response.headers.add_header("Content-Type", "application/json")
         self.response.headers.add_header("Access-Control-Allow-Headers", "x-requested-with")

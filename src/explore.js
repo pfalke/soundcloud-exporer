@@ -78,12 +78,6 @@ $(document).ready(function() {
 			})
 		})
 
-		if (graphSrc.length === 0) {
-			graphSrc = 'No data - remove some of those filters!'
-		}
-
-		console.log(graphSrc)
-
 		// pass the source to the parser
 		updateGraph(graphSrc)
 	}
@@ -243,6 +237,7 @@ $(document).ready(function() {
 	function storeSounds(soundJSON, degree) {
 		var now = new Date()
 		var resp = JSON.parse(soundJSON)
+		console.log(resp)
 		var user, data, soundObj, soundType, soundList, i
 		for (var userId in resp) {
 			// mark the user as queried
@@ -251,7 +246,7 @@ $(document).ready(function() {
 			data = resp[userId]
 			// iterate all lists (favorites, tracks)
 			for (soundType in data) {
-				soundList = JSON.parse(data[soundType])
+				soundList = JSON.parse(data[soundType])// data[soundType] // 
 				for (i= 0; i<soundList.length; i++) {
 					soundObj = soundList[i]
 					// create new sound if it doesn't exist
@@ -282,7 +277,7 @@ $(document).ready(function() {
 		}
 
 		var then = new Date()
-		console.log('took ' + (then-now) + 'ms to store sounds')
+		// console.log('took ' + (then-now) + 'ms to store sounds')
 		// rewrite graph
 		determineGraphNodes()
 	}
@@ -291,6 +286,7 @@ $(document).ready(function() {
 	function storeConnections(usersJSON, degree) {
 		var now = new Date()
 		var resp = JSON.parse(usersJSON)
+		console.log(resp)
 		var userId, user, data, dataObj, dataType, dataList, i, otherType
 		for (userId in resp) {
 			// mark the user as queried, delete references that were made so far to avoid duplicates
@@ -302,7 +298,7 @@ $(document).ready(function() {
 			// iterate all lists (favorites, tracks)
 			for (dataType in data) {
 				otherType = (dataType == 'followers') ? 'followings' : 'followers'
-				dataList = JSON.parse(data[dataType])
+				dataList = JSON.parse(data[dataType]) // data[dataType] // 
 				for (i= 0; i<dataList.length; i++) {
 					dataObj = dataList[i]
 					// create new user if it doesn't exist
@@ -316,7 +312,7 @@ $(document).ready(function() {
 			}
 		}
 		var then = new Date()
-		console.log('took ' + (then-now) + 'ms to store connections')
+		// console.log('took ' + (then-now) + 'ms to store connections')
 
 
 		// start retrieving sounds unless we reached finalDegree
@@ -347,7 +343,7 @@ $(document).ready(function() {
 		var now = new Date()
 		$.post(dataUrl, {
 			'orders' : JSON.stringify(idsToQuery),
-			'quicks': 'true' // for local testing, only does few requests
+			'quicks': 'false' // for local testing, only does few requests
 		}).done(function(resp) {
 			var newDate = new Date()
 			console.log('took ' + (newDate - now)+ 'ms to get ' + dataType +
