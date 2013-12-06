@@ -11,7 +11,7 @@ from google.appengine.api import urlfetch
 
 
 SC_BASE_URL = "https://api.soundcloud.com/users/"
-SC_URL_END = '.json?client_id=f90fa65cc94d868d957c0b529c5ecc3d&limit=200'
+SC_URL_END = '.json?client_id=f90fa65cc94d868d957c0b529c5ecc3d&limit=50'
 
 JINJA_ENVIRONMENT = jinja2.Environment(
     loader=jinja2.FileSystemLoader(os.path.dirname(__file__)),
