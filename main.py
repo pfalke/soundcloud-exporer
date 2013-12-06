@@ -2,6 +2,7 @@ import webapp2
 from google.appengine.ext import webapp
 from google.appengine.ext import ndb
 import jinja2
+import users
 
 import logging
 import os
@@ -30,7 +31,9 @@ class Log(ndb.Model):
 
 class LogHandler(webapp.RequestHandler):
     def post(self):
-        logging.info(self.request.arguments())
+        if users.is_current_user_admin():
+            logging.info("visit from admin - not loggin' this!")
+            return
         log = Log.get_by_id(self.request.get('id'))
         if not log:
             log = Log(id=self.request.get('id'))
