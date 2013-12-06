@@ -59,11 +59,6 @@ class ShowStats(webapp2.RequestHandler):
         template = JINJA_ENVIRONMENT.get_template('Logs.html')
         self.response.write(template.render(templ_val))
 
-        test = json.loads(json.dumps({'cool': 'shit'}))
-        t2 = {'a': test, 'b': [test,test]}
-        logging.info(json.dumps(t2)[:-1])
-        logging.info(json.dumps(t2))
-
 
 class DataHandler(webapp2.RequestHandler):
     def post(self):
