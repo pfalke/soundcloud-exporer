@@ -166,14 +166,22 @@
           <button id="btnDegree2" degree="2" class="btn degreeButton" disabled>Degree 2</button><br>
           <button id="btnDegree3" degree="3" class="btn degreeButton" disabled>Degree 3</button><br>
           <button id="btnDegree4" degree="4" class="btn degreeButton" disabled>Degree 4</button><br>
-          <button id="btnDegree5" degree="5" class="btn degreeButton" disabled>Degree 5</button><br>
         </p>
         <p>
           <input type="checkbox" id="keepFresh"/>Keep it fresh<br>
           <input type="checkbox" id="newPeople"/>Give me new people
         </p>
-        <p>
+        <div id="oauth_button" style="display:none;">
+          <h4> Check out your own account!</h4>
+            <a href="https://soundcloud.com/connect?response_type=code&scope=non-expiring&client_id=81d9704f45e2b1d224e791d20eb76d2f&redirect_uri=https%3A%2F%2Fsoundcloud-explore.appspot.com%2F">
+              <button class="btn btn-primary">Connect with Soundcloud
+              </button>
+            </a>
           <!-- [date selector] -->
+        </div>
+        <p>
+          This is a just-for-fun project.  
+          <a href="mailto:x@pfalke.com">Let me know</a> what you think!
         </p>
 
         <div class="io" style="display:none;">
@@ -186,7 +194,10 @@
     </div>  
 
     <div id="dashboard">
-      <h3>Soundcloud Explore</h3>
+      <h3 style="float:left;">Soundcloud Explore</h3>
+      <span href="#" class="help">created by <a href="mailto:x@pfalke.com">Philipp von Falkenhausen</a></span>
+
+      <!-- old stuff -->
       <a href="#" class="about active" style="display:none;"><div class="popup"><img src="style/nub.png">About</div>about halfviz</a>
       <a href="#" class="help" style="display:none;">syntax help</a>
       <ul class="controls" style="display:none;">

@@ -44,6 +44,10 @@ body{
   background:white;
 }
 
+#editor p, #editor div {
+  margin-left: 5px;
+}
+
 #editor textarea{
   position:relative;
   display:block;
@@ -148,11 +152,11 @@ a.update{
   text-decoration:underline;
 }
 */
-#dashboard a.help{
+#dashboard span.help{
   display:block;
   float:right;
-  background:url(help-button.png) top left;
-  width:22px;
+  /*background:url(help-button.png) top left;*/
+  /*width:22px;*/
   height:22px;
   margin:16px 14px 0 60px;
   text-indent:-66px;
@@ -161,9 +165,9 @@ a.update{
   color:black;
   font:12px/30px Arial, sans-serif;
 }
-#dashboard a.help:hover{
-  background:url(help-button.png) -22px left;
-  text-decoration:underline;
+#dashboard .help:hover{
+  /*background:url(help-button.png) -22px left;*/
+  /*text-decoration:underline;*/
 }
 
 

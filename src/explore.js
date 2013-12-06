@@ -180,7 +180,7 @@ $(document).ready(function() {
 
 	// MANAGE GRAPH DATA
 
-	var finalDegree = 5 // how much data to fetch (degrees of separation from root user)
+	var finalDegree = 4 // how much data to fetch (degrees of separation from root user)
 
 	var users = {} // the users that have been processed, indexed by ID
 	var sounds = {} // the tracks that have been sighted, indexed by ID
@@ -220,7 +220,6 @@ $(document).ready(function() {
 			'2': [],
 			'3': [],
 			'4': [],
-			'5': [],
 		}
 
 		// returns list of users up to given degree have favorited etc this sound
@@ -316,9 +315,7 @@ $(document).ready(function() {
 
 
 		// start retrieving sounds unless we reached finalDegree
-		// if (degree<finalDegree) {
 		loadDataAtMaxDegree('sounds' ,degree+1)
-		// }
 	}
 
 	// for which users <= degree we haven't queried this dataType
@@ -343,7 +340,7 @@ $(document).ready(function() {
 		var now = new Date()
 		$.post(dataUrl, {
 			'orders' : JSON.stringify(idsToQuery),
-			'quicks': 'false' // for local testing, only does few requests
+			'quicks': 'x' // for local testing, only does few requests
 		}).done(function(resp) {
 			var newDate = new Date()
 			console.log('took ' + (newDate - now)+ 'ms to get ' + dataType +
@@ -428,6 +425,11 @@ $(document).ready(function() {
 			// log this visit on backend
 			logVisit(user)
 		})
+		// show button for Connect to Soundcloud if not connected
+		if (!localStorage.accessTokenSC) {
+			console.log(localStorage.accessTokenSC)
+			$('#oauth_button').show()
+		}
 	}
 
 	function start() {
