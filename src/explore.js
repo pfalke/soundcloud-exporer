@@ -108,7 +108,7 @@ $(document).ready(function() {
 				if ((!keepFresh || users[rootID].sounds.indexOf(sounds[soundId])== -1) &&
 					sounds[soundId].connectedUsersAtDegree(degreeConsidered).length>=minConnectedUsers) {
 					soundsInGraph.push(sounds[soundId])
-					console.log(sounds[soundId].soundData.title)
+					// console.log(sounds[soundId].soundData.title)
 					// bump count for each user associated with sound
 					$.each(sounds[soundId].connectedUsersAtDegree(degreeConsidered), bumpUserCount)
 				}
@@ -159,13 +159,11 @@ $(document).ready(function() {
 			computeNumerBigUsers()
 		}
 
-		console.log(soundsInGraph)
-
 		writeGraphSrc(soundsInGraph, userCounts)
 		// update again in .5 sec
 		// setTimeout(writeGraphSource, 800)
 		var then = new Date()
-		console.log('took ' + (then-now) + 'ms to determine graph')
+		console.log('took ' + (then-now) + 'ms to determine graph with ' + soundsInGraph.length + ' sounds')
 	}
 
 
@@ -236,7 +234,6 @@ $(document).ready(function() {
 	function storeSounds(soundJSON, degree) {
 		var now = new Date()
 		var resp = JSON.parse(soundJSON)
-		console.log(resp)
 		var user, data, soundObj, soundType, soundList, i
 		for (var userId in resp) {
 			// mark the user as queried
@@ -285,7 +282,6 @@ $(document).ready(function() {
 	function storeConnections(usersJSON, degree) {
 		var now = new Date()
 		var resp = JSON.parse(usersJSON)
-		console.log(resp)
 		var userId, user, data, dataObj, dataType, dataList, i, otherType
 		for (userId in resp) {
 			// mark the user as queried, delete references that were made so far to avoid duplicates
@@ -313,7 +309,6 @@ $(document).ready(function() {
 		var then = new Date()
 		// console.log('took ' + (then-now) + 'ms to store connections')
 
-
 		// start retrieving sounds unless we reached finalDegree
 		loadDataAtMaxDegree('sounds' ,degree+1)
 	}
@@ -333,14 +328,12 @@ $(document).ready(function() {
 				counter +=1
 			}
 		}
-		var c=0
-		for (var j in users) c+=1
-		console.log(c)
+		console.log('get '+ dataType + ' for ' + counter + ' users.')
 		// call internal API to make SC calls
 		var now = new Date()
 		$.post(dataUrl, {
 			'orders' : JSON.stringify(idsToQuery),
-			'quicks': 'x' // for local testing, only does few requests
+			'quicks': 'x' // parameter "quick": for local testing, backend only does few requests
 		}).done(function(resp) {
 			var newDate = new Date()
 			console.log('took ' + (newDate - now)+ 'ms to get ' + dataType +
