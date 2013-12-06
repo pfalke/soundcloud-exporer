@@ -113,32 +113,18 @@ class DataHandler(webapp2.RequestHandler):
 
         # all requests are fired, start waiting for responses
         resps = {}
-        respJSON = "{"
-        setUserComma = False
         for (user_id,req_dict) in reqs.iteritems():
-            setDataComma = False
             resps[user_id] = {}
-            if setUserComma:
-                respJSON += ', '
-            respJSON += '"' + user_id + '": {'
             for (data_type, rpc) in req_dict.iteritems():
                 try:
                     result = rpc.get_result()
                     if result.status_code == 200:
                         resps[user_id][data_type] = result.content # json.loads(result.content)
-                        if setDataComma:
-                            respJSON += ', '
-                        respJSON += '"' + data_type + '": ' + result.content
-                        setDataComma = True
                 except urlfetch.DownloadError, e:
                     # Request timed out or failed.
                     logging.info('error getting %s for user %s: %s' %
                         (data_type,user_id, str(e)))
-            respJSON += '}'
-            setUserComma = True
         logging.info('responses in')
-        respJSON += "}"
-        logging.info(respJSON)
         self.response.headers.add_header("Access-Control-Allow-Origin", "*")
         self.response.headers.add_header("Content-Type", "application/json")
         self.response.headers.add_header("Access-Control-Allow-Headers", "x-requested-with")
