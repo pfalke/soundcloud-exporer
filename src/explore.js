@@ -1,7 +1,6 @@
 /*jshint asi: true*/
 
 $(document).ready(function() {
-
 	// parameters for soundcloud
 	SOUNDCLOUD_CLIENT_ID = '81d9704f45e2b1d224e791d20eb76d2f'
 	SOUNDCLOUD_OAUTH_REDIRECT_URL = 'https://soundcloud-explore.appspot.com/'
@@ -332,20 +331,28 @@ $(document).ready(function() {
 				}
 			}
 		}
+		// var then = new Date()
+		// console.log('took ' + (then-now) + 'ms to store sounds')
+
+		// we're done with this degree. update buttons and graph as fit
 		// enable button for this degree to allow user to look at data
 		if (degree>1) {
 			$('#btnDegree'+degree).addClass('btn-warning').removeAttr('disabled')
 		}
-
 		// start retrieving connectedUsers unless we reached finalDegree
 		if (degree<finalDegree) {
 			loadDataAtMaxDegree('connectedUsers' ,degree)
+			$('#btnDegree'+(degree+1)).addClass('loading')
+			$('#editor').tooltip({
+				'content': "Loading"
+			}).popover('show')
 		}
 
-		var then = new Date()
-		// console.log('took ' + (then-now) + 'ms to store sounds')
-		// rewrite graph
-		determineGraphNodes()
+		// rewrite graph unless we only have data for root user
+		if (degree>0) {
+			determineGraphNodes()
+			$('#btnDegree'+degree).removeClass('loading')
+		}
 	}
 
 	// create User object for newly found users, associate users amongst each other, signal that users were loaded
@@ -536,6 +543,8 @@ $(document).ready(function() {
 	} catch(e) {
 		console.log(e)
 	}
+
+
 
 	// startWithId('emeli-st-rmer')
 	// emeli-st-rmer

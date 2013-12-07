@@ -8,6 +8,7 @@
 
     <link rel="stylesheet" href="style/halfviz.css" type="text/css" charset="utf-8">
     <link rel="stylesheet" href="css/bootstrap.min.css" type="text/css" charset="utf-8">
+    <link rel="stylesheet" href="css/font-awesome.css" type="text/css" charset="utf-8">
 
     <title>Soundcloud Explorer</title>
 
@@ -175,10 +176,22 @@
       <canvas id="viewport" width="800" height="600"></canvas>
       <div id="editor">
         <p>
-          <button id="btnDegree1" degree="1" class="btn btn-primary degreeButton">Degree 1</button><br>
-          <button id="btnDegree2" degree="2" class="btn degreeButton" disabled>Degree 2</button><br>
-          <button id="btnDegree3" degree="3" class="btn degreeButton" disabled>Degree 3</button><br>
-          <button id="btnDegree4" degree="4" class="btn degreeButton" disabled>Degree 4</button><br>
+          <button id="btnDegree1" degree="1" class="btn btn-primary degreeButton loading">
+            <span class="spinner"><i class="icon-spin icon-refresh"></i></span>
+            Degree 1
+          </button><br>
+          <button id="btnDegree2" degree="2" class="btn degreeButton" disabled>
+            <span class="spinner"><i class="icon-spin icon-refresh"></i></span>
+            Degree 2
+          </button><br>
+          <button id="btnDegree3" degree="3" class="btn degreeButton" disabled>
+            <span class="spinner"><i class="icon-spin icon-refresh"></i></span>
+            Degree 3
+          </button><br>
+          <button id="btnDegree4" degree="4" class="btn degreeButton" disabled>
+            <span class="spinner"><i class="icon-spin icon-refresh"></i></span>
+            Degree 4
+          </button><br>
         </p>
         <p>
           <input type="checkbox" id="keepFresh"/>Keep it fresh<br>
@@ -214,7 +227,7 @@
           <!-- [date selector] -->
         </div>
         <p>
-          This is a just-for-fun project.  
+          This is a just-for-fun project. <br> 
           <a href="mailto:x@pfalke.com">Let me know</a> what you think!
         </p>
 
@@ -243,8 +256,8 @@
     </div>
   </div>
 
-  <script src="src/jquery-1.6.1.min.js"></script>
-  <script src="src/jquery.address-1.4.min.js"></script>
+  <script src="src/jquery-1.9.1.min.js"></script>
+  <!-- <script src="src/jquersy.address-1.4.min.js"></script> -->
   <script src="arbor/lib/arbor.js"></script>
   <script src="src/graphics.js"></script>
 
