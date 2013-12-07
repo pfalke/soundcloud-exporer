@@ -184,6 +184,15 @@
           <input type="checkbox" id="keepFresh"/>Keep it fresh<br>
           <input type="checkbox" id="newPeople"/>Give me new people
         </p>
+        <div>
+          Date Range
+          <div id="dateRangeButtons" class="btn-group btn-group-sm" data-toggle="buttons-radio">
+            <button id="btnDateAny" dateRange="any" type="button" class="btn btn-primary active">Any</button>
+            <button id="btnDateFresh" dateRange="fresh" type="button" class="btn btn-primary">Fresh</button>
+            <button id="btnDateHot" dateRange="hot" type="button" class="btn btn-primary">Hot</button>
+          </div>
+        </div>
+
         <div id="oauth_button" style="display:none;">
           <h4> Check out your own account!</h4>
             <a href="https://soundcloud.com/connect?response_type=code&scope=non-expiring&client_id=81d9704f45e2b1d224e791d20eb76d2f&redirect_uri=https%3A%2F%2Fsoundcloud-explore.appspot.com%2F">

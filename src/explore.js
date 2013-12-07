@@ -53,6 +53,20 @@ $(document).ready(function() {
 		determineGraphNodes()
 	})
 
+	// exclude old tracks. fresh is 3 months, hot is 3 weeks
+	var now = new Date()
+	var maxAge = 100000// in days
+	$('#dateRangeButtons button').click(function(e) {
+		var dateRange = $(this).attr('dateRange')
+		if (dateRange == 'hot') {maxAge = 21}
+		else if (dateRange == 'fresh') {maxAge = 90}
+		else {maxAge = 10000}
+		console.log('maxAge is now ' + maxAge)
+		// redraw graph
+		determineGraphNodes()
+	})
+
+
 	// input is graph in '->' form, send this to halfviz
 	function updateGraph(src_text) {
         var network = parse(src_text)
@@ -106,10 +120,11 @@ $(document).ready(function() {
 				// criteria for inclusion of sound:
 				// (if keepFresh only sounds not connected to root user)
 				// sound needs to have enough connected users below degreeConsidered
-				if ((!keepFresh || users[rootID].sounds.indexOf(sounds[soundId])== -1) &&
+				// sound must not be too old
+				if (sounds[soundId].ageDays <= maxAge &&
+					(!keepFresh || users[rootID].sounds.indexOf(sounds[soundId])== -1) &&
 					sounds[soundId].connectedUsersAtDegree(degreeConsidered).length>=minConnectedUsers) {
 					soundsInGraph.push(sounds[soundId])
-					// console.log(sounds[soundId].soundData.title)
 					// bump count for each user associated with sound
 					$.each(sounds[soundId].connectedUsersAtDegree(degreeConsidered), bumpUserCount)
 				}
@@ -220,6 +235,10 @@ $(document).ready(function() {
 			'3': [],
 			'4': [],
 		}
+
+		// creation date on Soundcloud, age in days
+		this.created = new Date(sound_obj.created_at)
+		this.ageDays = Math.floor((now - this.created)/1000/60/60/24)
 
 		// returns list of users up to given degree have favorited etc this sound
 		this.connectedUsersAtDegree = function(degree) {
