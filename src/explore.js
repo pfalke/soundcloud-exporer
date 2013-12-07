@@ -57,6 +57,8 @@ $(document).ready(function() {
 	var now = new Date()
 	var maxAge = 100000// in days
 	$('#dateRangeButtons button').click(function(e) {
+		// unselect default button
+		$('#btnDateAny').removeClass('active')
 		var dateRange = $(this).attr('dateRange')
 		if (dateRange == 'hot') {maxAge = 21}
 		else if (dateRange == 'fresh') {maxAge = 90}
@@ -65,7 +67,6 @@ $(document).ready(function() {
 		// redraw graph
 		determineGraphNodes()
 	})
-
 
 	// input is graph in '->' form, send this to halfviz
 	function updateGraph(src_text) {
@@ -472,6 +473,7 @@ $(document).ready(function() {
 	setTimeout(function() {	$(window).resize()},1500)
 	setTimeout(function() {	$(window).resize()},3500)
 	setTimeout(function() {	$(window).resize()},7500)
+
 
 	start()
 
