@@ -6,7 +6,7 @@
   Parseur = function(){
     var strip = function(s){ return s.replace(/^[\s\t]+|[\s\t]+$/g,'') }    
     var recognize = function(s){
-      console.log(s)
+      // console.log(s)
       // return the first {.*} mapping in the string (or "" if none)
       var from = -1,
           to = -1,

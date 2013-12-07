@@ -343,9 +343,6 @@ $(document).ready(function() {
 		if (degree<finalDegree) {
 			loadDataAtMaxDegree('connectedUsers' ,degree)
 			$('#btnDegree'+(degree+1)).addClass('loading')
-			$('#editor').tooltip({
-				'content': "Loading"
-			}).popover('show')
 		}
 
 		// rewrite graph unless we only have data for root user
