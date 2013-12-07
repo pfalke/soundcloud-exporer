@@ -68,6 +68,51 @@ $(document).ready(function() {
 		determineGraphNodes()
 	})
 
+
+
+	// UI
+	
+	function writeListsInDashboard(soundList, userList) {
+		var theList = document.createDocumentFragment()
+		var entryTemplate = document.createDocumentFragment()
+		var li = document.createElement("li")
+		li.className = 'soundInList'
+		var thumb = document.createElement('img')
+		thumb.className = 'contentThumb'
+		thumb.height = 100
+		thumb.width = 100
+		li.appendChild(thumb)
+		var title = document.createElement('a')
+		title.className = 'contentName'
+		title.target = '_blank'
+		li.appendChild(title)
+		entryTemplate.appendChild(li)
+		$.each(soundList, function writeList(index, sound) {
+			var entry = entryTemplate.cloneNode(true)
+			entry.querySelector('.contentThumb').src = sound.soundData.artwork_url
+			entry.querySelector('.contentName').innerHTML = sound.soundData.title
+			entry.querySelector('.contentName').href = sound.soundData.permalink_url
+			theList.appendChild(entry)
+		})
+		document.getElementById('soundsInGraph').innerHTML = ''
+		document.getElementById('soundsInGraph').appendChild(theList)
+		//userList
+		theList = document.createDocumentFragment()
+		$.each(userList, function writeList(index, user) {
+			var entry = entryTemplate.cloneNode(true)
+			entry.querySelector('.contentThumb').src = user.userData.avatar_url
+			var name = user.userData.username
+			if (user.userData.full_name && user.userData.full_name != name) {
+				name += ' (' + user.userData.full_name + ')'
+			}
+			entry.querySelector('.contentName').innerHTML = name
+			entry.querySelector('.contentName').href = user.userData.permalink_url
+			theList.appendChild(entry)
+		})
+		document.getElementById('usersInGraph').innerHTML = ''
+		document.getElementById('usersInGraph').appendChild(theList)
+	}
+
 	// input is graph in '->' form, send this to halfviz
 	function updateGraph(src_text) {
         var network = parse(src_text)
@@ -84,18 +129,22 @@ $(document).ready(function() {
 	function writeGraphSrc(soundList, userCounts) {
 		// write edges
 		var graphSrc = ''
+		var userList = []
 		$.each(soundList, function(index, sound) {
 			// check which users to connect to the node
 			$.each(sound.connectedUsersAtDegree(degreeConsidered), function(i, user) {
 				graphSrc += sound.soundData.title + ' {color:#f60}\n' // sound nodes have orange background
 				if (userCounts[user.userData.id]>= minRelevantSounds) {
 					graphSrc += user.userData.username + ' -> ' + sound.soundData.title + '\n'
+					// add user to list 
+					if (userList.indexOf(user) == -1) {userList.push(user)}
 				}
 			})
 		})
 
 		// pass the source to the parser
 		updateGraph(graphSrc)
+		writeListsInDashboard(soundList,userList)
 	}
 
 	// returns list of sounds to be included in graph and dict giving how many of these sounds each user is connecteed to
