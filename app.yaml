@@ -17,6 +17,18 @@ handlers:
   static_dir: style
   secure: always
 
+- url: /js
+  static_dir: js
+  secure: always
+
+- url: /css
+  static_dir: css
+  secure: always
+
+- url: /fonts
+  static_dir: fonts
+  secure: always
+
 - url: /favicon\.ico
   static_files: favicon.ico
   upload: favicon\.ico
