@@ -106,6 +106,8 @@ $(document).ready(function() {
 			}
 			entry.querySelector('.contentName').innerHTML = name
 			entry.querySelector('.contentName').href = user.userData.permalink_url
+			$('<a href="/' + user.userData.permalink + '" class="label label-warning" style="margin-left:5px;">View graph</a>')
+				.appendTo(entry.querySelector('li'))
 			theList.appendChild(entry)
 		})
 		document.getElementById('usersInGraph').innerHTML = ''
