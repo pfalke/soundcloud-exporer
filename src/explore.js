@@ -302,18 +302,18 @@ $(document).ready(function() {
 	}
 
 	// create Sound object for newly found songs, associate sounds with User objects, signal that sounds were loaded
-	function storeSounds(soundJSON, degree) {
+	function storeSounds(dataLoaded, degree) {
 		var now = new Date()
-		var resp = JSON.parse(soundJSON)
+		// var resp = JSON.parse(soundJSON)
 		var user, data, soundObj, soundType, soundList, i
-		for (var userId in resp) {
+		for (var userId in dataLoaded) {
 			// mark the user as queried
 			user = users[userId]
 			user.queried.sounds = true
-			data = resp[userId]
+			data = dataLoaded[userId]
 			// iterate all lists (favorites, tracks)
 			for (soundType in data) {
-				soundList = JSON.parse(data[soundType])// data[soundType] // 
+				soundList =  data[soundType] // JSON.parse(data[soundType])//
 				for (i= 0; i<soundList.length; i++) {
 					soundObj = soundList[i]
 					// create new sound if it doesn't exist
@@ -355,21 +355,21 @@ $(document).ready(function() {
 	}
 
 	// create User object for newly found users, associate users amongst each other, signal that users were loaded
-	function storeConnections(usersJSON, degree) {
+	function storeConnections(dataLoaded, degree) {
 		var now = new Date()
-		var resp = JSON.parse(usersJSON)
+		// var resp = JSON.parse(usersJSON)
 		var userId, user, data, dataObj, dataType, dataList, i, otherType
-		for (userId in resp) {
+		for (userId in dataLoaded) {
 			// mark the user as queried, delete references that were made so far to avoid duplicates
 			user = users[userId]
 			user.queried.connectedUsers = true
 			user.followings = []
 			user.followers = []
-			data = resp[userId]
+			data = dataLoaded[userId]
 			// iterate all lists (favorites, tracks)
 			for (dataType in data) {
 				otherType = (dataType == 'followers') ? 'followings' : 'followers'
-				dataList = JSON.parse(data[dataType]) // data[dataType] // 
+				dataList = data[dataType] // JSON.parse(data[dataType]) // 
 				for (i= 0; i<dataList.length; i++) {
 					dataObj = dataList[i]
 					// create new user if it doesn't exist
@@ -391,20 +391,44 @@ $(document).ready(function() {
 
 	// for which users <= degree we haven't queried this dataType
 	function loadDataAtMaxDegree(dataType, degree) {
-		var user
+		var user, dataForUser
 		var idsToQuery = {}
-		var counter = 0
+		var counterCache = 0, counterAPI = 0
+		// for data retrieved from cache or backend
+		var dataLoaded = {}
 		for (var userId in users) {
 			user = users[userId]
+			dataLoaded[userId] = {}
 			// check if degree OK and we have not queried this data for this user before
 			// check connected users only if user has enough cool sounds (more than his degree)
 			if (!user.queried[dataType] && user.degree<=degree &&
 				(dataType == 'sounds' || user.coolSounds.length>user.degree)) {
-				idsToQuery[userId] = dataTypes[dataType]
-				counter +=1
+				//anything not found in cache goes here
+				idsToQuery[userId] = []
+				$.each(dataTypes[dataType], function(i, currDataType) {
+					// check if data can be pulled from cache
+					dataForUser = lscache.get(userId+currDataType)
+					if (dataForUser) { // found in cache
+						dataLoaded[userId][currDataType] = dataForUser
+						counterCache +=1
+					} else { // get from API
+						idsToQuery[userId].push(currDataType)
+						counterAPI +=1
+					}
+				})
+				// idsToQuery[userId] = dataTypes[dataType]
+				// counter +=1
 			}
 		}
-		console.log('get '+ dataType + ' for ' + counter + ' users.')
+		// skip API call if there is nothing to request
+		if (counterAPI === 0) {
+			console.log('skipping ' + dataType +
+				' API calls, all ' + counterCache + ' were retrieved from cache.')
+			processLoadedData(dataLoaded, dataType, degree)
+			return
+		}
+
+		console.log('order '+ counterAPI + ' requests for ' + dataType)
 		// call internal API to make SC calls
 		var now = new Date()
 		$.post(dataUrl, {
@@ -412,16 +436,37 @@ $(document).ready(function() {
 			'quicks': 'x' // parameter "quick": for local testing, backend only does few requests
 		}).done(function(resp) {
 			var newDate = new Date()
-			console.log('took ' + (newDate - now)+ 'ms to get ' + dataType +
-				' for ' + counter + ' users at degree ' + degree + '.')
-			// process response
-			if (dataType == 'sounds') {storeSounds(resp, degree)}
-			else if (dataType == 'connectedUsers') {storeConnections(resp, degree)}
+			console.log('took ' + (newDate - now)+ 'ms to get ' + counterAPI + ' ' + dataType +
+				' data-sets, ' + counterCache + ' were retrieved from cache.')
+				// ' + counter + ' users at degree ' + degree + '.')
+			// combine received data with data from cache
+			var recData = JSON.parse(resp)
+			for (var userId in recData) {
+				var userData = recData[userId]
+				// iterate all lists (favorites, tracks)
+				for (var dataKind in userData) {
+					var dataSet = JSON.parse(userData[dataKind])
+					dataLoaded[userId][dataKind] = dataSet
+					// store in cache (JSON as received). 
+					// 10min storing for root user, one day for first degree, .5 days for 2nd degree so they're evicted first!
+					// no caching for high degrees - that might overwrite data from low degrees!
+					if (degree<=2) {
+						var cacheTime = (degree === 0) ? 10 : 60*24*degree
+						lscache.set(userId+dataKind, dataSet, cacheTime)
+						console.log('set')
+					}
+				}
+			}
+			processLoadedData(dataLoaded, dataType, degree)
 		})
 
 	}
 
-
+	function processLoadedData(dataLoaded, dataType, degree) {
+		// process assembled data
+		if (dataType == 'sounds') {storeSounds(dataLoaded, degree)}
+		else if (dataType == 'connectedUsers') {storeConnections(dataLoaded, degree)}
+	}
 
 
 
@@ -489,10 +534,14 @@ $(document).ready(function() {
 			rootID = user.id
 			users[rootID] = new User(rootID, 0, user)
 			// start traveling down the tree
-			// loadSoundsAtMaxDegree(0)
 			loadDataAtMaxDegree('sounds', 0)
 			// log this visit on backend
 			logVisit(user)
+			// URL for sharing
+			var newurl = location.protocol+'//'+location.hostname+
+				(location.port ? ':'+location.port: '')+'/'+user.permalink
+			history.pushState({id: 'user.permalink'}, '', newurl);
+
 		})
 		// show button for Connect to Soundcloud if not connected
 		if (!localStorage.accessTokenSC) {
@@ -519,7 +568,6 @@ $(document).ready(function() {
 
 
 	// START HERE
-
 	// display "Loading"
     var mcp = HalfViz("#halfviz")
     updateGraph('Loading -> Your Data \n Your Data -> This can take \n This can take -> a few minutes')
