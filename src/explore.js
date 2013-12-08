@@ -416,8 +416,6 @@ $(document).ready(function() {
 						counterAPI +=1
 					}
 				})
-				// idsToQuery[userId] = dataTypes[dataType]
-				// counter +=1
 			}
 		}
 		// skip API call if there is nothing to request
@@ -448,10 +446,10 @@ $(document).ready(function() {
 					var dataSet = JSON.parse(userData[dataKind])
 					dataLoaded[userId][dataKind] = dataSet
 					// store in cache (JSON as received). 
-					// 10min storing for root user, one day for first degree, .5 days for 2nd degree so they're evicted first!
+					// 10min storing for root user, one day for first degree
 					// no caching for high degrees - that might overwrite data from low degrees!
-					if (degree<=2) {
-						var cacheTime = (degree === 0) ? 10 : 60*24*degree
+					if (degree<=1) {
+						var cacheTime = (degree === 0) ? 10 : 60*24
 						lscache.set(userId+dataKind, dataSet, cacheTime)
 						console.log('set')
 					}
