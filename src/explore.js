@@ -414,7 +414,6 @@ $(document).ready(function() {
 		var dataLoaded = {}
 		for (var userId in users) {
 			user = users[userId]
-			dataLoaded[userId] = {}
 			// check if degree OK and we have not queried this data for this user before
 			// check connected users only if user has enough cool sounds (more than his degree)
 			var userGood = (!user.queried[dataType] && user.degree<=degree &&
@@ -422,6 +421,7 @@ $(document).ready(function() {
 			if (!userGood) {
 				continue
 			}
+			dataLoaded[userId] = {}
 			idsToQuery[userId] = [] // list of things to request from API
 			for (var i = 0; i<dataTypes[dataType].length; i++) {
 				var currDataType = dataTypes[dataType][i]
@@ -446,7 +446,7 @@ $(document).ready(function() {
 				counterAPI +=1
 			}
 
-			// requests are split in batches of 50 to make load easier to handle for GAE
+			// requests are split in batches of ~50 to make load easier to handle for GAE
 			if (counterAPI>=50) {
 				batches.push(idsToQuery)
 				idsToQuery = {}
@@ -456,6 +456,37 @@ $(document).ready(function() {
 
 		if (counterAPI>0) {batches.push(idsToQuery)}
 
+		getAPIData(batches, dataLoaded, dataType, degree)
+
+// var now = new Date()
+// if (logging.calls) {console.log('order '+ batches.length + ' batches for ' + dataType)}
+// var unfinishedRequests = 0
+// $.each(batches, function(i, batch) {
+// unfinishedRequests +=1
+// $.post(dataUrl, {
+// 'orders' : JSON.stringify(batch),
+// 'quicks': 'x' // parameter "quick": for local testing, backend only does few requests
+// }).done(function(resp) {
+// // combine received data with data from cache
+// dataLoaded = mergeReceivedAPIData(dataLoaded, resp, degree)
+// unfinishedRequests -=1
+// if (!unfinishedRequests) {
+// var then = new Date()
+// if (logging.calls) {console.log('took ' + (then-now) + 'ms to get data')}
+// processLoadedData(dataLoaded, dataType, degree)
+// }
+
+// }).fail(function(resp) {
+// console.log(resp)
+// unfinishedRequests -=1
+// if (!unfinishedRequests) {
+// processLoadedData(dataLoaded, dataType, degree)
+// }
+// })
+// })
+	}
+
+	function getAPIData(batches, dataLoaded, dataType, degree) {
 		// skip API call if there is nothing to request
 		if (batches.length === 0) {
 			if (logging.calls) {console.log('skipping ' + dataType +
@@ -477,8 +508,10 @@ $(document).ready(function() {
 				dataLoaded = mergeReceivedAPIData(dataLoaded, resp, degree)
 				unfinishedRequests -=1
 				if (!unfinishedRequests) {
-					var then = new Date()
-					if (logging.calls) {console.log('took ' + (then-now) + 'ms to get data')}
+					if (logging.calls) {
+						var then = new Date()
+						console.log('took ' + (then-now) + 'ms to get data')
+					}
 					processLoadedData(dataLoaded, dataType, degree)
 				}
 
