@@ -88,14 +88,23 @@ class DataHandler(webapp2.RequestHandler):
         logging.info('%s reqs out' % req_counter)
 
         # all requests are fired, start waiting for responses
-        resps = {}
+        # resps = {}
+        self.response.write('{')
+        userComma = False
         for (user_id,req_dict) in reqs.iteritems():
-            resps[user_id] = {}
+            # resps[user_id] = {}
+            if userComma: self.response.write(',')
+            self.response.write('"%s": {' % user_id)
+            itemComma = False
             for (data_type, rpc) in req_dict.iteritems():
                 try:
                     result = rpc.get_result()
                     if result.status_code == 200:
-                        resps[user_id][data_type] = result.content # json.loads(result.content)
+                        if itemComma: self.response.write(',')
+                        self.response.write('"%s":' % data_type)
+                        self.response.write(result.content)
+                        itemComma = True
+                        # resps[user_id][data_type] = result.content # json.loads(result.content)
                 except urlfetch.DownloadError, e:
                     # Request timed out or failed.
                     logging.info('error getting %s for user %s: %s' %
@@ -103,11 +112,14 @@ class DataHandler(webapp2.RequestHandler):
                 except apiproxy_errors.OverQuotaError, message:
                     logging.error(message)
                     break
+            self.response.write('}')
+            userComma = True
+        self.response.write('}')
         logging.info('responses in')
         self.response.headers.add_header("Access-Control-Allow-Origin", "*")
         self.response.headers.add_header("Content-Type", "application/json")
         self.response.headers.add_header("Access-Control-Allow-Headers", "x-requested-with")
-        self.response.write(json.dumps(resps))
+        # self.response.write(json.dumps(resps))
 
 
 

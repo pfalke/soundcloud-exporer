@@ -498,14 +498,15 @@ $(document).ready(function() {
 			var userData = recData[userId]
 			// iterate all lists (favorites, tracks)
 			for (var dataKind in userData) {
-				var dataSet = JSON.parse(userData[dataKind])
-				dataLoaded[userId][dataKind] = dataSet
+				// var dataSet = JSON.parse(userData[dataKind])
+				dataLoaded[userId][dataKind] = userData[dataKind] // dataSet
 				// store in cache (JSON as received). 
 				// 10min storing for root user, one day for first degree
 				// no caching for high degrees - that might overwrite data from low degrees!
 				if (degree<=1) {
 					var cacheTime = (degree === 0) ? 10 : 60*24
-					lscache.set(userId+dataKind, dataSet, cacheTime)
+					lscache.set(userId+dataKind, userData[dataKind], cacheTime)
+					// lscache.set(userId+dataKind, dataSet, cacheTime)
 				}
 			}
 		}
