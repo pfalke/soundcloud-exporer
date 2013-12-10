@@ -3,6 +3,8 @@ from google.appengine.ext import webapp
 from google.appengine.ext import ndb
 from google.appengine.api import users
 
+from google.appengine.runtime import apiproxy_errors
+
 import jinja2
 
 import logging
@@ -98,6 +100,9 @@ class DataHandler(webapp2.RequestHandler):
                     # Request timed out or failed.
                     logging.info('error getting %s for user %s: %s' %
                         (data_type,user_id, str(e)))
+                except apiproxy_errors.OverQuotaError, message:
+                    logging.error(message)
+                    break
         logging.info('responses in')
         self.response.headers.add_header("Access-Control-Allow-Origin", "*")
         self.response.headers.add_header("Content-Type", "application/json")
