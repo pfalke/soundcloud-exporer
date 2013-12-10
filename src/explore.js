@@ -414,6 +414,7 @@ $(document).ready(function() {
 	function loadDataAtMaxDegree(dataType, degree) {
 		var user, dataForUser
 		var idsToQuery = {}
+		var batches = [] // we request at most 200 objects from API at a time
 		var counterCache = 0, counterAPI = 0
 		// for data retrieved from cache or backend
 		var dataLoaded = {}
@@ -444,54 +445,77 @@ $(document).ready(function() {
 				if (dataForUser) { // found in cache
 					dataLoaded[userId][currDataType] = dataForUser
 					counterCache +=1
-				} else { // get from API
-					idsToQuery[userId].push(currDataType)
-					counterAPI +=1
+					continue
 				}
-			// })
+				// get from API
+				idsToQuery[userId].push(currDataType)
+				counterAPI +=1
 			}
 
+			if (counterAPI>=50) {
+				console.log('batch of size ' + counterAPI)
+				batches.push(idsToQuery)
+				idsToQuery = {}
+				counterAPI = 0
+			}
 		}
+
+		if (counterAPI>0) {batches.push(idsToQuery)}
+
 		// skip API call if there is nothing to request
-		if (counterAPI === 0) {
+		if (batches.length === 0) {
 			if (logging.calls) {console.log('skipping ' + dataType +
 				' API calls, all ' + counterCache + ' were retrieved from cache.')}
 			processLoadedData(dataLoaded, dataType, degree)
 			return
 		}
 
-		if (logging.calls) {console.log('order '+ counterAPI + ' requests for ' + dataType)}
-		// call internal API to make SC calls
 		var now = new Date()
-		$.post(dataUrl, {
-			'orders' : JSON.stringify(idsToQuery),
-			'quicks': 'x' // parameter "quick": for local testing, backend only does few requests
-		}).done(function(resp) {
-			var newDate = new Date()
-			if (logging.calls) {console.log('took ' + (newDate - now)+ 'ms to get ' + counterAPI + ' ' + dataType +
-				' data-sets, ' + counterCache + ' were retrieved from cache.')}
-				// ' + counter + ' users at degree ' + degree + '.')
-			// combine received data with data from cache
-			var recData = JSON.parse(resp)
-			for (var userId in recData) {
-				var userData = recData[userId]
-				// iterate all lists (favorites, tracks)
-				for (var dataKind in userData) {
-					var dataSet = JSON.parse(userData[dataKind])
-					dataLoaded[userId][dataKind] = dataSet
-					// store in cache (JSON as received). 
-					// 10min storing for root user, one day for first degree
-					// no caching for high degrees - that might overwrite data from low degrees!
-					if (degree<=1) {
-						var cacheTime = (degree === 0) ? 10 : 60*24
-						lscache.set(userId+dataKind, dataSet, cacheTime)
-						// console.log('set')
-					}
+		if (logging.calls) {console.log('order '+ batches.length + ' batches for ' + dataType)}
+		var unfinishedRequests = 0
+		$.each(batches, function(i, batch) {
+			unfinishedRequests +=1
+			$.post(dataUrl, {
+				'orders' : JSON.stringify(batch),
+				'quicks': 'x' // parameter "quick": for local testing, backend only does few requests
+			}).done(function(resp) {
+				// combine received data with data from cache
+				dataLoaded = mergeReceivedAPIData(dataLoaded, resp, degree)
+				unfinishedRequests -=1
+				if (!unfinishedRequests) {
+					var then = new Date()
+					if (logging.calls) {console.log('took ' + (then-now) + 'ms to get data')}
+					processLoadedData(dataLoaded, dataType, degree)
+				}
+
+			}).fail(function(resp) {
+				console.log(resp)
+				unfinishedRequests -=1
+				if (!unfinishedRequests) {
+					processLoadedData(dataLoaded, dataType, degree)
+				}
+			})
+		})
+	}
+
+	function mergeReceivedAPIData(dataLoaded, resp, degree) {
+		var recData = JSON.parse(resp)
+		for (var userId in recData) {
+			var userData = recData[userId]
+			// iterate all lists (favorites, tracks)
+			for (var dataKind in userData) {
+				var dataSet = JSON.parse(userData[dataKind])
+				dataLoaded[userId][dataKind] = dataSet
+				// store in cache (JSON as received). 
+				// 10min storing for root user, one day for first degree
+				// no caching for high degrees - that might overwrite data from low degrees!
+				if (degree<=1) {
+					var cacheTime = (degree === 0) ? 10 : 60*24
+					lscache.set(userId+dataKind, dataSet, cacheTime)
 				}
 			}
-			processLoadedData(dataLoaded, dataType, degree)
-		})
-
+		}
+		return dataLoaded
 	}
 
 	function processLoadedData(dataLoaded, dataType, degree) {
