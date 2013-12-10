@@ -1,9 +1,9 @@
 /*jshint asi: true*/
 
 var logging = {
-	'calls': true,
+	'calls': false,
 	'interactions': false,
-	'redraws': false,
+	'redraws': true,
 }
 
 $(document).ready(function() {
@@ -130,8 +130,8 @@ $(document).ready(function() {
         })
         sys.merge(network)
         // setTimeout(function() {
-        // 	sys.merge(network)
-        // 	console.log('merge')
+        // sys.merge(network)
+        // console.log('merge')
         // },1000)
         _updateTimeout = null
         // display text in input area
@@ -235,6 +235,7 @@ $(document).ready(function() {
 		}
 		while (bigUsers>8 && minRelevantSounds<15) {
 			minRelevantSounds +=1
+			console.log(minRelevantSounds)
 			computeNumerBigUsers()
 		}
 
@@ -283,7 +284,6 @@ $(document).ready(function() {
 		}
 
 		this.sounds = [] // favorites, tracks, etc
-		this.followers = []
 		this.followings = []
 
 		this.coolSounds = [] // sounds in common with root user
@@ -381,30 +381,24 @@ $(document).ready(function() {
 		// var resp = JSON.parse(usersJSON)
 		var userId, user, data, dataObj, dataType, dataList, i, otherType
 		for (userId in dataLoaded) {
-			// mark the user as queried, delete references that were made so far to avoid duplicates
+			// mark the user as queried
 			user = users[userId]
 			user.queried.connectedUsers = true
-			user.followings = []
-			user.followers = []
-			data = dataLoaded[userId]
-			// iterate all lists (favorites, tracks)
-			for (dataType in data) {
-				otherType = (dataType == 'followers') ? 'followings' : 'followers'
-				dataList = data[dataType] // JSON.parse(data[dataType]) // 
-				for (i= 0; i<dataList.length; i++) {
-					dataObj = dataList[i]
-					// create new user if it doesn't exist
-					if (!(dataObj.id in users)) {
-						users[dataObj.id] = new User(dataObj.id, degree+1, dataObj)
-					}
-					// associate users with each other
-					user[dataType].push(users[dataObj.id])
-					users[dataObj.id][otherType].push(user)
+			// user.followings = []
+			if (!('followings' in dataLoaded[userId])) {
+				continue
+			}
+			dataList = dataLoaded[userId]['followings']
+			for (i= 0; i<dataList.length; i++) {
+				dataObj = dataList[i]
+				// create new user if it doesn't exist
+				if (!(dataObj.id in users)) {
+					users[dataObj.id] = new User(dataObj.id, degree+1, dataObj)
 				}
+				// associate users with each other
+				user.followings.push(users[dataObj.id])
 			}
 		}
-		var then = new Date()
-		// console.log('took ' + (then-now) + 'ms to store connections')
 
 		// start retrieving sounds unless we reached finalDegree
 		loadDataAtMaxDegree('sounds' ,degree+1)
@@ -452,8 +446,8 @@ $(document).ready(function() {
 				counterAPI +=1
 			}
 
+			// requests are split in batches of 50 to make load easier to handle for GAE
 			if (counterAPI>=50) {
-				console.log('batch of size ' + counterAPI)
 				batches.push(idsToQuery)
 				idsToQuery = {}
 				counterAPI = 0
