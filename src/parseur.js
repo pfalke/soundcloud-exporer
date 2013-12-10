@@ -172,7 +172,6 @@
           var tokens = lechs(line)
           if (tokens.length>0) statements.push(tokens)
         })
-        
         return yack(statements)
       }
     }

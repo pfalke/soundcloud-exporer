@@ -1,5 +1,11 @@
 /*jshint asi: true*/
 
+var logging = {
+	'calls': true,
+	'interactions': false,
+	'redraws': false,
+}
+
 $(document).ready(function() {
 	// parameters for soundcloud
 	SOUNDCLOUD_CLIENT_ID = '81d9704f45e2b1d224e791d20eb76d2f'
@@ -41,14 +47,16 @@ $(document).ready(function() {
 	// true: display only sounds that are not connected to root user
 	var keepFresh = false
 	$('#keepFresh').change(function() {
-		keepFresh = ($(this).attr('checked') == 'checked')
+		keepFresh = $(this).prop('checked')
+		if (logging.interactions) {console.log(keepFresh)}
 		determineGraphNodes()
 	})
 
 	// true: display only users that are not connected to root user
 	var newPeople = false
 	$('#newPeople').change(function() {
-		newPeople = ($(this).attr('checked') == 'checked')
+		newPeople = $(this).prop('checked')
+		if (logging.interactions) {console.log(newPeople)}
 		determineGraphNodes()
 	})
 
@@ -62,7 +70,7 @@ $(document).ready(function() {
 		if (dateRange == 'hot') {maxAge = 21}
 		else if (dateRange == 'fresh') {maxAge = 90}
 		else {maxAge = 10000}
-		console.log('maxAge is now ' + maxAge)
+		if (logging.interactions) {console.log('maxAge is now ' + maxAge)}
 		// redraw graph
 		determineGraphNodes()
 	})
@@ -121,6 +129,10 @@ $(document).ready(function() {
           if (ndata.label===undefined) ndata.label = nname
         })
         sys.merge(network)
+        // setTimeout(function() {
+        // 	sys.merge(network)
+        // 	console.log('merge')
+        // },1000)
         _updateTimeout = null
         // display text in input area
         $("#halfviz").find('textarea').val(src_text)
@@ -132,9 +144,9 @@ $(document).ready(function() {
 		var graphSrc = ''
 		var userList = []
 		$.each(soundList, function(index, sound) {
+			graphSrc += sound.soundData.title + ' {color:#f60}\n' // sound nodes have orange background
 			// check which users to connect to the node
 			$.each(sound.connectedUsersAtDegree(degreeConsidered), function(i, user) {
-				graphSrc += sound.soundData.title + ' {color:#f60}\n' // sound nodes have orange background
 				if (userCounts[user.userData.id]>= minRelevantSounds) {
 					graphSrc += user.userData.username + ' -> ' + sound.soundData.title + '\n'
 					// add user to list 
@@ -187,14 +199,14 @@ $(document).ready(function() {
 		// there should be 5-15 sounds in the graph. adjust parameters as long as it makes sense
 		while (soundsInGraph.length> 15 && minConnectedUsers<25) {
 			minConnectedUsers +=1
-			console.log('increased nodeDegree to '+ minConnectedUsers +
-				', had ' + soundsInGraph.length + ' sounds')
+			if (logging.paramterChanges) {console.log('increased nodeDegree to '+ minConnectedUsers +
+							', had ' + soundsInGraph.length + ' sounds')}
 			getSoundsForGraphAndUserCounts()
 		}
 		while (soundsInGraph.length< 5 && minConnectedUsers>3) {
 			minConnectedUsers -=1
-			console.log('decreased nodeDegree to '+ minConnectedUsers +
-				', had ' + soundsInGraph.length + ' sounds')
+			if (logging.paramterChanges) {console.log('decreased nodeDegree to '+ minConnectedUsers +
+				', had ' + soundsInGraph.length + ' sounds')}
 			getSoundsForGraphAndUserCounts()
 		}
 
@@ -230,7 +242,8 @@ $(document).ready(function() {
 		// update again in .5 sec
 		// setTimeout(writeGraphSource, 800)
 		var then = new Date()
-		console.log('took ' + (then-now) + 'ms to determine graph with ' + soundsInGraph.length + ' sounds')
+		if (logging.redraws)
+			{console.log('took ' + (then-now) + 'ms to determine graph with ' + soundsInGraph.length + ' sounds')}
 	}
 
 
@@ -253,7 +266,7 @@ $(document).ready(function() {
 
 	var dataTypes = {
 		'connectedUsers': ['followings'],
-		'sounds': ['favorites', 'tracks']
+		'sounds': ['favorites', 'tracks', 'playlists']
 	}
 
 	// a user, local copy of data pulled from Soundcloud
@@ -311,9 +324,17 @@ $(document).ready(function() {
 			user = users[userId]
 			user.queried.sounds = true
 			data = dataLoaded[userId]
-			// iterate all lists (favorites, tracks)
+			// iterate all lists (favorites, tracks, playlists)
 			for (soundType in data) {
-				soundList =  data[soundType] // JSON.parse(data[soundType])//
+				// get list of tracks -> need to unbundle playlists
+				if (soundType === 'playlists') {
+					soundList = []
+					for (var pl = 0; pl < data['playlists'].length; pl++) {
+						soundList = soundList.concat(data['playlists'][pl].tracks)
+					}
+				} else {
+					soundList =  data[soundType] // JSON.parse(data[soundType])//					
+				}
 				for (i= 0; i<soundList.length; i++) {
 					soundObj = soundList[i]
 					// create new sound if it doesn't exist
@@ -333,8 +354,8 @@ $(document).ready(function() {
 				}
 			}
 		}
-		// var then = new Date()
-		// console.log('took ' + (then-now) + 'ms to store sounds')
+		var then = new Date()
+		console.log('took ' + (then-now) + 'ms to store sounds')
 
 		// we're done with this degree. update buttons and graph as fit
 		// enable button for this degree to allow user to look at data
@@ -401,32 +422,45 @@ $(document).ready(function() {
 			dataLoaded[userId] = {}
 			// check if degree OK and we have not queried this data for this user before
 			// check connected users only if user has enough cool sounds (more than his degree)
-			if (!user.queried[dataType] && user.degree<=degree &&
-				(dataType == 'sounds' || user.coolSounds.length>user.degree)) {
-				//anything not found in cache goes here
-				idsToQuery[userId] = []
-				$.each(dataTypes[dataType], function(i, currDataType) {
-					// check if data can be pulled from cache
-					dataForUser = lscache.get(userId+currDataType)
-					if (dataForUser) { // found in cache
-						dataLoaded[userId][currDataType] = dataForUser
-						counterCache +=1
-					} else { // get from API
-						idsToQuery[userId].push(currDataType)
-						counterAPI +=1
-					}
-				})
+			var userGood = (!user.queried[dataType] && user.degree<=degree &&
+				(dataType == 'sounds' || user.coolSounds.length>user.degree))
+			if (!userGood) {
+				continue
 			}
+			idsToQuery[userId] = [] // list of things to request from API
+			for (var i = 0; i<dataTypes[dataType].length; i++) {
+				var currDataType = dataTypes[dataType][i]
+				// no request needs to be made if we know there is no data
+				// not sure how non-public favorites are handled, so make request anyway for small degrees
+				var skip = ((currDataType == 'playlists' && user.userData.playlist_count === 0) ||
+					(currDataType == 'favorites' && user.userData.public_favorites_count === 0 && degree>1) ||
+					(currDataType == 'tracks' && user.userData.track_count === 0) ||
+					(currDataType == 'followings' && user.userData.followings_count === 0))
+				if (skip) {
+					continue
+				}
+				// check if data can be pulled from cache
+				dataForUser = lscache.get(userId+currDataType)
+				if (dataForUser) { // found in cache
+					dataLoaded[userId][currDataType] = dataForUser
+					counterCache +=1
+				} else { // get from API
+					idsToQuery[userId].push(currDataType)
+					counterAPI +=1
+				}
+			// })
+			}
+
 		}
 		// skip API call if there is nothing to request
 		if (counterAPI === 0) {
-			console.log('skipping ' + dataType +
-				' API calls, all ' + counterCache + ' were retrieved from cache.')
+			if (logging.calls) {console.log('skipping ' + dataType +
+				' API calls, all ' + counterCache + ' were retrieved from cache.')}
 			processLoadedData(dataLoaded, dataType, degree)
 			return
 		}
 
-		console.log('order '+ counterAPI + ' requests for ' + dataType)
+		if (logging.calls) {console.log('order '+ counterAPI + ' requests for ' + dataType)}
 		// call internal API to make SC calls
 		var now = new Date()
 		$.post(dataUrl, {
@@ -434,8 +468,8 @@ $(document).ready(function() {
 			'quicks': 'x' // parameter "quick": for local testing, backend only does few requests
 		}).done(function(resp) {
 			var newDate = new Date()
-			console.log('took ' + (newDate - now)+ 'ms to get ' + counterAPI + ' ' + dataType +
-				' data-sets, ' + counterCache + ' were retrieved from cache.')
+			if (logging.calls) {console.log('took ' + (newDate - now)+ 'ms to get ' + counterAPI + ' ' + dataType +
+				' data-sets, ' + counterCache + ' were retrieved from cache.')}
 				// ' + counter + ' users at degree ' + degree + '.')
 			// combine received data with data from cache
 			var recData = JSON.parse(resp)
@@ -451,7 +485,7 @@ $(document).ready(function() {
 					if (degree<=1) {
 						var cacheTime = (degree === 0) ? 10 : 60*24
 						lscache.set(userId+dataKind, dataSet, cacheTime)
-						console.log('set')
+						// console.log('set')
 					}
 				}
 			}
@@ -577,18 +611,6 @@ $(document).ready(function() {
 
 
 	start()
-
-	// engineering
-	try {
-		if (window.chrome.loadTimes().wasFetchedViaSpdy) {
-			console.log('loaded via SPDY')
-		} else {
-			console.log('no SPDY')
-		}
-	} catch(e) {
-		console.log(e)
-	}
-
 
 
 	// startWithId('emeli-st-rmer')
