@@ -315,242 +315,228 @@ $(document).ready(function() {
 		}
 	}
 
-	// create Sound object for newly found songs, associate sounds with User objects, signal that sounds were loaded
-	function storeSounds(dataLoaded, degree) {
-		var now = new Date()
-		// var resp = JSON.parse(soundJSON)
-		var user, data, soundObj, soundType, soundList, i
-		for (var userId in dataLoaded) {
-			// mark the user as queried
-			user = users[userId]
-			user.queried.sounds = true
-			data = dataLoaded[userId]
-			// iterate all lists (favorites, tracks, playlists)
-			for (soundType in data) {
-				// get list of tracks -> need to unbundle playlists
-				if (soundType === 'playlists') {
-					soundList = []
-					for (var pl = 0; pl < data['playlists'].length; pl++) {
-						soundList = soundList.concat(data['playlists'][pl].tracks)
-					}
-				} else {
-					soundList =  data[soundType] // JSON.parse(data[soundType])//					
-				}
-				for (i= 0; i<soundList.length; i++) {
-					soundObj = soundList[i]
-					// create new sound if it doesn't exist
-					if (!(soundObj.id in sounds)) {
-						sounds[soundObj.id] = new Sound(soundObj.id, soundObj)
+
+	function DataRetrieval() {
+		this.stop = false // set this flag to stop callbacks from executing
+
+		// create Sound object for newly found songs, associate sounds with User objects, signal that sounds were loaded
+		function storeSounds(dataLoaded, degree) {
+			var now = new Date()
+			// var resp = JSON.parse(soundJSON)
+			var user, data, soundObj, soundType, soundList, i
+			for (var userId in dataLoaded) {
+				// mark the user as queried
+				user = users[userId]
+				user.queried.sounds = true
+				data = dataLoaded[userId]
+				// iterate all lists (favorites, tracks, playlists)
+				for (soundType in data) {
+					// get list of tracks -> need to unbundle playlists
+					if (soundType === 'playlists') {
+						soundList = []
+						for (var pl = 0; pl < data['playlists'].length; pl++) {
+							soundList = soundList.concat(data['playlists'][pl].tracks)
+						}
 					} else {
-						// console.log('sound exists')
+						soundList =  data[soundType] // JSON.parse(data[soundType])//					
 					}
-					// associate sound object with user and vice versa
-					user.sounds.push(sounds[soundObj.id])
-					sounds[soundObj.id].connectedUsers[degree].push(user)
+					for (i= 0; i<soundList.length; i++) {
+						soundObj = soundList[i]
+						// create new sound if it doesn't exist
+						if (!(soundObj.id in sounds)) {
+							sounds[soundObj.id] = new Sound(soundObj.id, soundObj)
+						} else {
+							// console.log('sound exists')
+						}
+						// associate sound object with user and vice versa
+						user.sounds.push(sounds[soundObj.id])
+						sounds[soundObj.id].connectedUsers[degree].push(user)
 
-					// sounds in common with root user are cool
-					if (users[rootID].sounds.indexOf(sounds[soundObj.id])>=0) {
-						user.coolSounds.push(sounds[soundObj.id])
+						// sounds in common with root user are cool
+						if (users[rootID].sounds.indexOf(sounds[soundObj.id])>=0) {
+							user.coolSounds.push(sounds[soundObj.id])
+						}
 					}
 				}
 			}
-		}
-		var then = new Date()
-		console.log('took ' + (then-now) + 'ms to store sounds')
+			var then = new Date()
+			console.log('took ' + (then-now) + 'ms to store sounds')
 
-		// we're done with this degree. update buttons and graph as fit
-		// enable button for this degree to allow user to look at data
-		if (degree>1) {
-			$('#btnDegree'+degree).addClass('btn-warning').removeAttr('disabled')
-		}
-		// start retrieving connectedUsers unless we reached finalDegree
-		if (degree<finalDegree) {
-			loadDataAtMaxDegree('connectedUsers' ,degree)
-			$('#btnDegree'+(degree+1)).addClass('loading')
-		}
-
-		// rewrite graph unless we only have data for root user
-		if (degree>0) {
-			determineGraphNodes()
-			$('#btnDegree'+degree).removeClass('loading')
-		}
-	}
-
-	// create User object for newly found users, associate users amongst each other, signal that users were loaded
-	function storeConnections(dataLoaded, degree) {
-		var now = new Date()
-		// var resp = JSON.parse(usersJSON)
-		var userId, user, data, dataObj, dataType, dataList, i, otherType
-		for (userId in dataLoaded) {
-			// mark the user as queried
-			user = users[userId]
-			user.queried.connectedUsers = true
-			// user.followings = []
-			if (!('followings' in dataLoaded[userId])) {
-				continue
+			// we're done with this degree. update buttons and graph as fit
+			// enable button for this degree to allow user to look at data
+			if (degree>1) {
+				$('#btnDegree'+degree).addClass('btn-warning').removeAttr('disabled')
 			}
-			dataList = dataLoaded[userId]['followings']
-			for (i= 0; i<dataList.length; i++) {
-				dataObj = dataList[i]
-				// create new user if it doesn't exist
-				if (!(dataObj.id in users)) {
-					users[dataObj.id] = new User(dataObj.id, degree+1, dataObj)
-				}
-				// associate users with each other
-				user.followings.push(users[dataObj.id])
+			// start retrieving connectedUsers unless we reached finalDegree
+			if (degree<finalDegree) {
+				loadDataAtMaxDegree('connectedUsers' ,degree)
+				$('#btnDegree'+(degree+1)).addClass('loading')
+			}
+
+			// rewrite graph unless we only have data for root user
+			if (degree>0) {
+				determineGraphNodes()
+				$('#btnDegree'+degree).removeClass('loading')
 			}
 		}
 
-		// start retrieving sounds unless we reached finalDegree
-		loadDataAtMaxDegree('sounds' ,degree+1)
-	}
-
-	// for which users <= degree we haven't queried this dataType
-	function loadDataAtMaxDegree(dataType, degree) {
-		var user, dataForUser
-		var idsToQuery = {}
-		var batches = [] // we request at most 200 objects from API at a time
-		var counterCache = 0, counterAPI = 0
-		// for data retrieved from cache or backend
-		var dataLoaded = {}
-		for (var userId in users) {
-			user = users[userId]
-			// check if degree OK and we have not queried this data for this user before
-			// check connected users only if user has enough cool sounds (more than his degree)
-			var userGood = (!user.queried[dataType] && user.degree<=degree &&
-				(dataType == 'sounds' || user.coolSounds.length>user.degree))
-			if (!userGood) {
-				continue
-			}
-			dataLoaded[userId] = {}
-			idsToQuery[userId] = [] // list of things to request from API
-			for (var i = 0; i<dataTypes[dataType].length; i++) {
-				var currDataType = dataTypes[dataType][i]
-				// no request needs to be made if we know there is no data
-				// not sure how non-public favorites are handled, so make request anyway for small degrees
-				var skip = ((currDataType == 'playlists' && user.userData.playlist_count === 0) ||
-					(currDataType == 'favorites' && user.userData.public_favorites_count === 0 && degree>1) ||
-					(currDataType == 'tracks' && user.userData.track_count === 0) ||
-					(currDataType == 'followings' && user.userData.followings_count === 0))
-				if (skip) {
+		// create User object for newly found users, associate users amongst each other, signal that users were loaded
+		function storeConnections(dataLoaded, degree) {
+			var now = new Date()
+			// var resp = JSON.parse(usersJSON)
+			var userId, user, data, dataObj, dataType, dataList, i, otherType
+			for (userId in dataLoaded) {
+				// mark the user as queried
+				user = users[userId]
+				user.queried.connectedUsers = true
+				// user.followings = []
+				if (!('followings' in dataLoaded[userId])) {
 					continue
 				}
-				// check if data can be pulled from cache
-				dataForUser = lscache.get(userId+currDataType)
-				if (dataForUser) { // found in cache
-					dataLoaded[userId][currDataType] = dataForUser
-					counterCache +=1
+				dataList = dataLoaded[userId]['followings']
+				for (i= 0; i<dataList.length; i++) {
+					dataObj = dataList[i]
+					// create new user if it doesn't exist
+					if (!(dataObj.id in users)) {
+						users[dataObj.id] = new User(dataObj.id, degree+1, dataObj)
+					}
+					// associate users with each other
+					user.followings.push(users[dataObj.id])
+				}
+			}
+
+			// start retrieving sounds unless we reached finalDegree
+			loadDataAtMaxDegree('sounds' ,degree+1)
+		}
+
+		// for which users <= degree we haven't queried this dataType
+		function loadDataAtMaxDegree(dataType, degree) {
+			// outside functions can set this flag, e.g. when root user changes and new search is started
+			if (this.stop) {
+				return
+			}
+			var user, dataForUser
+			var idsToQuery = {}
+			var batches = [] // we request at most 200 objects from API at a time
+			var counterCache = 0, counterAPI = 0
+			// for data retrieved from cache or backend
+			var dataLoaded = {}
+			for (var userId in users) {
+				user = users[userId]
+				// check if degree OK and we have not queried this data for this user before
+				// check connected users only if user has enough cool sounds (more than his degree)
+				var userGood = (!user.queried[dataType] && user.degree<=degree &&
+					(dataType == 'sounds' || user.coolSounds.length>user.degree))
+				if (!userGood) {
 					continue
 				}
-				// get from API
-				idsToQuery[userId].push(currDataType)
-				counterAPI +=1
-			}
-
-			// requests are split in batches of ~50 to make load easier to handle for GAE
-			if (counterAPI>=50) {
-				batches.push(idsToQuery)
-				idsToQuery = {}
-				counterAPI = 0
-			}
-		}
-
-		if (counterAPI>0) {batches.push(idsToQuery)}
-
-		getAPIData(batches, dataLoaded, dataType, degree)
-
-// var now = new Date()
-// if (logging.calls) {console.log('order '+ batches.length + ' batches for ' + dataType)}
-// var unfinishedRequests = 0
-// $.each(batches, function(i, batch) {
-// unfinishedRequests +=1
-// $.post(dataUrl, {
-// 'orders' : JSON.stringify(batch),
-// 'quicks': 'x' // parameter "quick": for local testing, backend only does few requests
-// }).done(function(resp) {
-// // combine received data with data from cache
-// dataLoaded = mergeReceivedAPIData(dataLoaded, resp, degree)
-// unfinishedRequests -=1
-// if (!unfinishedRequests) {
-// var then = new Date()
-// if (logging.calls) {console.log('took ' + (then-now) + 'ms to get data')}
-// processLoadedData(dataLoaded, dataType, degree)
-// }
-
-// }).fail(function(resp) {
-// console.log(resp)
-// unfinishedRequests -=1
-// if (!unfinishedRequests) {
-// processLoadedData(dataLoaded, dataType, degree)
-// }
-// })
-// })
-	}
-
-	function getAPIData(batches, dataLoaded, dataType, degree) {
-		// skip API call if there is nothing to request
-		if (batches.length === 0) {
-			if (logging.calls) {console.log('skipping ' + dataType +
-				' API calls, all ' + counterCache + ' were retrieved from cache.')}
-			processLoadedData(dataLoaded, dataType, degree)
-			return
-		}
-
-		var now = new Date()
-		if (logging.calls) {console.log('order '+ batches.length + ' batches for ' + dataType)}
-		var unfinishedRequests = 0
-		$.each(batches, function(i, batch) {
-			unfinishedRequests +=1
-			$.post(dataUrl, {
-				'orders' : JSON.stringify(batch),
-				'quicks': 'x' // parameter "quick": for local testing, backend only does few requests
-			}).done(function(resp) {
-				// combine received data with data from cache
-				dataLoaded = mergeReceivedAPIData(dataLoaded, resp, degree)
-				unfinishedRequests -=1
-				if (!unfinishedRequests) {
-					if (logging.calls) {
-						var then = new Date()
-						console.log('took ' + (then-now) + 'ms to get data')
+				dataLoaded[userId] = {}
+				idsToQuery[userId] = [] // list of things to request from API
+				for (var i = 0; i<dataTypes[dataType].length; i++) {
+					var currDataType = dataTypes[dataType][i]
+					// no request needs to be made if we know there is no data
+					// not sure how non-public favorites are handled, so make request anyway for small degrees
+					var skip = ((currDataType == 'playlists' && user.userData.playlist_count === 0) ||
+						(currDataType == 'favorites' && user.userData.public_favorites_count === 0 && degree>1) ||
+						(currDataType == 'tracks' && user.userData.track_count === 0) ||
+						(currDataType == 'followings' && user.userData.followings_count === 0))
+					if (skip) {
+						continue
 					}
-					processLoadedData(dataLoaded, dataType, degree)
+					// check if data can be pulled from cache
+					dataForUser = lscache.get(userId+currDataType)
+					if (dataForUser) { // found in cache
+						dataLoaded[userId][currDataType] = dataForUser
+						counterCache +=1
+						continue
+					}
+					// get from API
+					idsToQuery[userId].push(currDataType)
+					counterAPI +=1
 				}
 
-			}).fail(function(resp) {
-				console.log(resp)
-				unfinishedRequests -=1
-				if (!unfinishedRequests) {
-					processLoadedData(dataLoaded, dataType, degree)
+				// requests are split in batches of ~50 to make load easier to handle for GAE
+				if (counterAPI>=50) {
+					batches.push(idsToQuery)
+					idsToQuery = {}
+					counterAPI = 0
 				}
+			}
+
+			if (counterAPI>0) {batches.push(idsToQuery)}
+
+			getAPIData(batches, dataLoaded, dataType, degree)
+		}
+
+		function getAPIData(batches, dataLoaded, dataType, degree) {
+			// skip API call if there is nothing to request
+			if (batches.length === 0) {
+				if (logging.calls) {console.log('skipping ' + dataType +
+					' API calls, all ' + counterCache + ' were retrieved from cache.')}
+				processLoadedData(dataLoaded, dataType, degree)
+				return
+			}
+
+			var now = new Date()
+			if (logging.calls) {console.log('order '+ batches.length + ' batches for ' + dataType)}
+			var unfinishedRequests = 0
+			$.each(batches, function(i, batch) {
+				unfinishedRequests +=1
+				$.post(dataUrl, {
+					'orders' : JSON.stringify(batch),
+					'quicks': 'x' // parameter "quick": for local testing, backend only does few requests
+				}).done(function(resp) {
+					// combine received data with data from cache
+					dataLoaded = mergeReceivedAPIData(dataLoaded, resp, degree)
+					unfinishedRequests -=1
+					if (!unfinishedRequests) {
+						if (logging.calls) {
+							var then = new Date()
+							console.log('took ' + (then-now) + 'ms to get data')
+						}
+						processLoadedData(dataLoaded, dataType, degree)
+					}
+
+				}).fail(function(resp) {
+					console.log(resp)
+					unfinishedRequests -=1
+					if (!unfinishedRequests) {
+						processLoadedData(dataLoaded, dataType, degree)
+					}
+				})
 			})
-		})
-	}
+		}
 
-	function mergeReceivedAPIData(dataLoaded, resp, degree) {
-		var recData = JSON.parse(resp)
-		for (var userId in recData) {
-			var userData = recData[userId]
-			// iterate all lists (favorites, tracks)
-			for (var dataKind in userData) {
-				// var dataSet = JSON.parse(userData[dataKind])
-				dataLoaded[userId][dataKind] = userData[dataKind] // dataSet
-				// store in cache (JSON as received). 
-				// 10min storing for root user, one day for first degree
-				// no caching for high degrees - that might overwrite data from low degrees!
-				if (degree<=1) {
-					var cacheTime = (degree === 0) ? 10 : 60*24
-					lscache.set(userId+dataKind, userData[dataKind], cacheTime)
-					// lscache.set(userId+dataKind, dataSet, cacheTime)
+		function mergeReceivedAPIData(dataLoaded, resp, degree) {
+			var recData = JSON.parse(resp)
+			for (var userId in recData) {
+				var userData = recData[userId]
+				// iterate all lists (favorites, tracks)
+				for (var dataKind in userData) {
+					// var dataSet = JSON.parse(userData[dataKind])
+					dataLoaded[userId][dataKind] = userData[dataKind] // dataSet
+					// store in cache (JSON as received). 
+					// 10min storing for root user, one day for first degree
+					// no caching for high degrees - that might overwrite data from low degrees!
+					if (degree<=1) {
+						var cacheTime = (degree === 0) ? 10 : 60*24
+						lscache.set(userId+dataKind, userData[dataKind], cacheTime)
+						// lscache.set(userId+dataKind, dataSet, cacheTime)
+					}
 				}
 			}
+			return dataLoaded
 		}
-		return dataLoaded
-	}
 
-	function processLoadedData(dataLoaded, dataType, degree) {
-		// process assembled data
-		if (dataType == 'sounds') {storeSounds(dataLoaded, degree)}
-		else if (dataType == 'connectedUsers') {storeConnections(dataLoaded, degree)}
+		function processLoadedData(dataLoaded, dataType, degree) {
+			// process assembled data
+			if (dataType == 'sounds') {storeSounds(dataLoaded, degree)}
+			else if (dataType == 'connectedUsers') {storeConnections(dataLoaded, degree)}
+		}
+		
+		// kick of retrieving data
+		loadDataAtMaxDegree('sounds', 0)
+
 	}
 
 
@@ -659,11 +645,11 @@ $(document).ready(function() {
 		}
 		var user = users[id]
 		console.log("Start graph search for user " + user.userData.username)
-		rootID = id
+		window.rootID = id
 		// calculate degree of separation from new root user for all loaded users
 		setDegrees()
-		// start traveling down the tree
-		loadDataAtMaxDegree('sounds', 0)
+		// start retrieving data. global variable so it can be stopped
+		window.currDataRetrieval = new DataRetrieval()
 		// URL for sharing
 		var newurl = location.protocol+'//'+location.hostname+
 			(location.port ? ':'+location.port: '')+'/'+user.userData.permalink
@@ -707,6 +693,9 @@ $(document).ready(function() {
 
 	// clicking on a list item in the dashboard starts graph for that user
 	$('.userlink').click(function(e) {
+		// stop the current search
+		window.currDataRetrieval.stop = true
+		// user degrees will be set to match new root
 		for (var user in  users) {
 			user.degree = 999
 		}
