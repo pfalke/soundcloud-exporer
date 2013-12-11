@@ -114,7 +114,8 @@ $(document).ready(function() {
 			}
 			entry.querySelector('.contentName').innerHTML = name
 			entry.querySelector('.contentName').href = user.userData.permalink_url
-			$('<a href="/' + user.userData.permalink + '" class="label label-warning" style="margin-left:5px;">View graph</a>')
+			$('<a user_id="' + user.userData.id + '" href="/' + user.userData.permalink +
+				'" class="label label-warning userlink" style="margin-left:5px;">View graph</a>')
 				.appendTo(entry.querySelector('li'))
 			theList.appendChild(entry)
 		})
@@ -561,6 +562,30 @@ $(document).ready(function() {
 
 	// USER INTERACTIONS etc
 
+	// set degrees of seperation for all loaded users, starting out with the root user
+	// perform BFS
+	function setDegrees() {
+		users[rootID].degree = 0
+		var currDegree = 0
+		var unprocessedCurrDegree = [users[rootID]]
+		while (degree < finalDegree) {
+			var unprocessedNextDegree = []
+			for (var i=0; i<unprocessedCurrDegree.length; i++) {
+				var followings = unprocessedCurrDegree[i].followings
+				for (var j=0; j<followings.length; j++) {
+					// degree has already been set for those in unprocessedNextDegree and in unprocessedCurrDegree
+					// hence we can skip anyone with such a degree
+					if (followings[j].degree<=currDegree+1)
+						{continue}
+					followings[i].degree = currDegree +1
+					unprocessedNextDegree.push(followings[i])
+				}
+			}
+			degree +=1
+			unprocessedCurrDegree = unprocessedNextDegree
+		}
+	}
+
 	function startWithOAuthUser() {
 		// retrive accessToken from LocalStorage
 		var accessTokenSC = localStorage.accessTokenSC
@@ -607,29 +632,45 @@ $(document).ready(function() {
 		return results === null ? "" : decodeURIComponent(results[1].replace(/\+/g, " "));
 	}
 
-	function startWithId(id, accessTokenSC) {
-		var url = 'https://api.soundcloud.com/users/'+id+
-		'.json?client_id='+SOUNDCLOUD_CLIENT_ID
+	function getRootUserData(id, accessTokenSC) {
+		var url = 'https://api.soundcloud.com/users/'+id+'.json?client_id='+SOUNDCLOUD_CLIENT_ID
 		if (id == 'me' && accessTokenSC) {
 			url = "https://api.soundcloud.com/me.json?oauth_token=" + accessTokenSC
 		}
 		$.getJSON(url).done(function(user) {
-			console.log("Start graph search for user " + user.username)
-			rootID = user.id
-			users[rootID] = new User(rootID, 0, user)
-			// start traveling down the tree
-			loadDataAtMaxDegree('sounds', 0)
-			// log this visit on backend
-			logVisit(user)
-			// URL for sharing
-			var newurl = location.protocol+'//'+location.hostname+
-				(location.port ? ':'+location.port: '')+'/'+user.permalink
-			history.pushState({id: 'user.permalink'}, '', newurl);
+			if (logging.calls) {console.log('got data for root user: ' + user.username)}
+			users[user.id] = new User(user.id, 0, user)
 
+			// log visits of logged in users to their own tree
+			if (id == 'me' && accessTokenSC) {
+				logVisit(user)
+			}
+
+			// start algorithm
+			startWithId(user.id)
 		})
+	}
+
+	function startWithId(id, accessTokenSC) {
+		// load data first - may later not be necessary if we already found the user in some other tree
+		if (!(id in users)) {
+			getRootUserData(id, accessTokenSC)
+			return
+		}
+		var user = users[id]
+		console.log("Start graph search for user " + user.userData.username)
+		rootID = id
+		// calculate degree of separation from new root user for all loaded users
+		setDegrees()
+		// start traveling down the tree
+		loadDataAtMaxDegree('sounds', 0)
+		// URL for sharing
+		var newurl = location.protocol+'//'+location.hostname+
+			(location.port ? ':'+location.port: '')+'/'+user.userData.permalink
+		history.pushState({id: user.userData.permalink}, '', newurl);
+
 		// show button for Connect to Soundcloud if not connected
 		if (!localStorage.accessTokenSC) {
-			console.log(localStorage.accessTokenSC)
 			$('#oauth_button').show()
 		}
 	}
@@ -651,6 +692,7 @@ $(document).ready(function() {
 
 
 
+
 	// START HERE
 	// display "Loading"
     var mcp = HalfViz("#halfviz")
@@ -661,9 +703,17 @@ $(document).ready(function() {
 	setTimeout(function() {	$(window).resize()},3500)
 	setTimeout(function() {	$(window).resize()},7500)
 
-
 	start()
 
+	// clicking on a list item in the dashboard starts graph for that user
+	$('.userlink').click(function(e) {
+		for (var user in  users) {
+			user.degree = 999
+		}
+		e.preventDefault()
+		var id = $(this).prop('user_id')
+		startWithId(id)
+	})
 
 	// startWithId('emeli-st-rmer')
 	// emeli-st-rmer
