@@ -1,7 +1,7 @@
 /*jshint asi: true*/
 
 var logging = {
-	'calls': false,
+	'calls': true,
 	'interactions': false,
 	'redraws': true,
 }
@@ -317,7 +317,10 @@ $(document).ready(function() {
 
 
 	function DataRetrieval() {
-		this.stop = false // set this flag to stop callbacks from executing
+		var stop = false // set this flag to stop callbacks from executing
+		this.stop = function() {
+			stop = true
+		}
 
 		// create Sound object for newly found songs, associate sounds with User objects, signal that sounds were loaded
 		function storeSounds(dataLoaded, degree) {
@@ -378,13 +381,18 @@ $(document).ready(function() {
 				determineGraphNodes()
 				$('#btnDegree'+degree).removeClass('loading')
 			}
+
+			if (degree === 0) {
+				// check the already loaded users for sounds common with root user
+				checkCoolSounds()
+			}
 		}
 
 		// create User object for newly found users, associate users amongst each other, signal that users were loaded
 		function storeConnections(dataLoaded, degree) {
 			var now = new Date()
 			// var resp = JSON.parse(usersJSON)
-			var userId, user, data, dataObj, dataType, dataList, i, otherType
+			var userId, user, data, dataObj, dataType, dataList, i
 			for (userId in dataLoaded) {
 				// mark the user as queried
 				user = users[userId]
@@ -396,15 +404,21 @@ $(document).ready(function() {
 				dataList = dataLoaded[userId]['followings']
 				for (i= 0; i<dataList.length; i++) {
 					dataObj = dataList[i]
-					// create new user if it doesn't exist
+					// create new user or update degree where necessary
 					if (!(dataObj.id in users)) {
 						users[dataObj.id] = new User(dataObj.id, degree+1, dataObj)
+					} else if (users[dataObj.id].degree > user.degree+1) {
+						users[dataObj.id].degree = user.degree+1
 					}
+
 					// associate users with each other
 					user.followings.push(users[dataObj.id])
 				}
 			}
 
+			// above we have only set the degree for followings of newly loaded users.
+			// now set degree for existing users
+			setDegree(degree)
 			// start retrieving sounds unless we reached finalDegree
 			loadDataAtMaxDegree('sounds' ,degree+1)
 		}
@@ -412,7 +426,7 @@ $(document).ready(function() {
 		// for which users <= degree we haven't queried this dataType
 		function loadDataAtMaxDegree(dataType, degree) {
 			// outside functions can set this flag, e.g. when root user changes and new search is started
-			if (this.stop) {
+			if (stop) {
 				return
 			}
 			var user, dataForUser
@@ -465,6 +479,7 @@ $(document).ready(function() {
 
 			if (counterAPI>0) {batches.push(idsToQuery)}
 
+				console.log('here')
 			getAPIData(batches, dataLoaded, dataType, degree)
 		}
 
@@ -472,7 +487,7 @@ $(document).ready(function() {
 			// skip API call if there is nothing to request
 			if (batches.length === 0) {
 				if (logging.calls) {console.log('skipping ' + dataType +
-					' API calls, all ' + counterCache + ' were retrieved from cache.')}
+					' API calls, all were retrieved from cache.')}
 				processLoadedData(dataLoaded, dataType, degree)
 				return
 			}
@@ -547,6 +562,30 @@ $(document).ready(function() {
 
 
 	// USER INTERACTIONS etc
+
+	function checkCoolSounds() {
+		var cools = users[rootID].sounds
+		for (var userId in users) {
+			var user = users[userId]
+			for (var i=0; i<user.sounds.length; i++) {
+				if (cools.indexOf(user.sounds[i]) != -1) {
+					user.coolSounds.push(user.sounds[i])
+				}
+			}
+		}
+	}
+
+	// make sure the followings of a given degree are set to <=degree+1
+	function setDegree(degree) {
+		for (var user in users) {
+			if (user.degree != degree)
+				{continue}
+			for (var i = 0; i<user.followings.length; i++) {
+				if (user.followings[i].degree>degree+1)
+					{user.followings[i].degree = degree+1}
+			}
+		}
+	}
 
 	// set degrees of seperation for all loaded users, starting out with the root user
 	// perform BFS
@@ -643,17 +682,16 @@ $(document).ready(function() {
 			getRootUserData(id, accessTokenSC)
 			return
 		}
-		var user = users[id]
-		console.log("Start graph search for user " + user.userData.username)
-		window.rootID = id
-		// calculate degree of separation from new root user for all loaded users
-		setDegrees()
+		var rootUser = users[id]
+		console.log("Start graph search for user " + rootUser.userData.username)
+		rootID = id
+		rootUser.degree = 0
 		// start retrieving data. global variable so it can be stopped
 		window.currDataRetrieval = new DataRetrieval()
 		// URL for sharing
 		var newurl = location.protocol+'//'+location.hostname+
-			(location.port ? ':'+location.port: '')+'/'+user.userData.permalink
-		history.pushState({id: user.userData.permalink}, '', newurl);
+			(location.port ? ':'+location.port: '')+'/'+rootUser.userData.permalink
+		history.pushState({id: rootUser.userData.permalink}, '', newurl);
 
 		// show button for Connect to Soundcloud if not connected
 		if (!localStorage.accessTokenSC) {
@@ -694,14 +732,16 @@ $(document).ready(function() {
 	// clicking on a list item in the dashboard starts graph for that user
 	$('.userlink').click(function(e) {
 		// stop the current search
-		window.currDataRetrieval.stop = true
+		window.currDataRetrieval.stop()
 		// user degrees will be set to match new root
 		for (var user in  users) {
 			user.degree = 999
+			user.coolSounds = []
 		}
 		e.preventDefault()
 		var id = $(this).prop('user_id')
 		startWithId(id)
+		return false
 	})
 
 	// startWithId('emeli-st-rmer')
