@@ -62,6 +62,72 @@ class ShowStats(webapp2.RequestHandler):
         self.response.write(template.render(templ_val))
 
 
+def makeRequests(orders, quick=False):
+    req_counter = 0
+    reqs = {}
+    # for each user, get whatever is requested
+    for (user_id, user_data) in orders.iteritems():
+        # speedy mode for development
+        if quick and req_counter >= 5:
+            break
+        if req_counter >= 500:
+            logging.info('skipping remaining requests')
+            break
+        reqs[user_id] = {}
+        # user_data is list of data_types in the SC API
+        for data_type in user_data:
+            # fire requests to SC API
+            rpc = urlfetch.create_rpc(deadline=3)
+            urlfetch.make_fetch_call(
+                rpc, SC_BASE_URL + user_id + '/' + data_type + SC_URL_END)
+            reqs[user_id][data_type] = rpc
+            # bump counter
+            req_counter +=1
+    logging.info('%s reqs out' % req_counter)
+    return reqs
+
+
+class SoundsHandler(webapp2.RequestHandler):
+    def post(self):
+        orders = json.loads(self.request.get('orders'))
+        quick = 'quick' in self.request.arguments() # make only 5 reqs, for loacl testing
+        reqs = makeRequests(orders, quick)
+
+        # consolidate received sounds:
+        # store relevant data for each song and associate songs with users
+        data = {}
+        sounds = {}
+        for (user_id,req_dict) in reqs.iteritems():
+            data[user_id] = []
+            for (data_type, rpc) in req_dict.iteritems():
+                try:
+                    result = rpc.get_result()
+                    if result.status_code != 200: continue
+                    soundList = json.loads(result.content)
+                    for soundData in soundList:
+                        # logging.info(soundData)
+                        if soundData['id'] not in sounds:
+                            sounds[soundData['id']] = { # data relevant for us
+                                'id': soundData['id'],
+                                'created_at': soundData['created_at'],
+                                'permalink_url': soundData['permalink_url'],
+                                'artwork_url': soundData['artwork_url'],
+                                'title': soundData['title']
+                            }
+                        data[user_id].append(soundData['id']) # associate with user
+                except urlfetch.DownloadError, e:
+                    # Request timed out or failed.
+                    logging.info('error getting %s for user %s: %s' %
+                        (data_type,user_id, str(e)))
+                except apiproxy_errors.OverQuotaError, message:
+                    logging.error(message)
+                    break
+        self.response.write(json.dumps({
+            'data': data,
+            'sounds': sounds
+            }))
+
+
 class DataHandler(webapp2.RequestHandler):
     def post(self):
         orders = json.loads(self.request.get('orders'))
@@ -127,4 +193,5 @@ app = webapp2.WSGIApplication([
        webapp2.Route(r'/log', handler=LogHandler, name='log'),
        webapp2.Route(r'/showstats', handler=ShowStats, name='showstats'),
        webapp2.Route(r'/getData', handler=DataHandler, name='getData'),
+       webapp2.Route(r'/getSounds', handler=SoundsHandler, name='getSounds'),
        ],debug=True)

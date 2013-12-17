@@ -260,7 +260,7 @@ $(document).ready(function() {
 
 	// MANAGE GRAPH DATA
 
-	var finalDegree = 4 // how much data to fetch (degrees of separation from root user)
+	var finalDegree = 1 // how much data to fetch (degrees of separation from root user)
 
 	var users = {} // the users that have been processed, indexed by ID
 	var sounds = {} // the tracks that have been sighted, indexed by ID
@@ -497,9 +497,13 @@ $(document).ready(function() {
 			var unfinishedRequests = 0
 			$.each(batches, function(i, batch) {
 				unfinishedRequests +=1
+				$.post('/getSounds', {
+					'orders' : JSON.stringify(batch),
+					'quick': 'x' // parameter "quick": for local testing, backend only does few requests
+				})
 				$.post(dataUrl, {
 					'orders' : JSON.stringify(batch),
-					'quicks': 'x' // parameter "quick": for local testing, backend only does few requests
+					'quick': 'x' // parameter "quick": for local testing, backend only does few requests
 				}).done(function(resp) {
 					// combine received data with data from cache
 					dataLoaded = mergeReceivedAPIData(dataLoaded, resp, degree)
