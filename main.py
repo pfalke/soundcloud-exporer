@@ -89,32 +89,40 @@ def makeRequests(orders, quick=False):
 
 class SoundsHandler(webapp2.RequestHandler):
     def post(self):
+        self.response.headers.add_header("Access-Control-Allow-Origin", "*")
+        self.response.headers.add_header("Content-Type", "application/json")
+        self.response.headers.add_header("Access-Control-Allow-Headers", "x-requested-with")
+
         orders = json.loads(self.request.get('orders'))
         quick = 'quick' in self.request.arguments() # make only 5 reqs, for loacl testing
         reqs = makeRequests(orders, quick)
 
         # consolidate received sounds:
         # store relevant data for each song and associate songs with users
-        data = {}
         sounds = {}
+        connectedSounds = {}
+
         for (user_id,req_dict) in reqs.iteritems():
-            data[user_id] = []
+            connectedSounds[user_id] = []
             for (data_type, rpc) in req_dict.iteritems():
                 try:
                     result = rpc.get_result()
                     if result.status_code != 200: continue
                     soundList = json.loads(result.content)
                     for soundData in soundList:
-                        # logging.info(soundData)
                         if soundData['id'] not in sounds:
-                            sounds[soundData['id']] = { # data relevant for us
-                                'id': soundData['id'],
-                                'created_at': soundData['created_at'],
-                                'permalink_url': soundData['permalink_url'],
-                                'artwork_url': soundData['artwork_url'],
-                                'title': soundData['title']
-                            }
-                        data[user_id].append(soundData['id']) # associate with user
+                            try:
+                                sounds[soundData['id']] = { # data relevant for us
+                                    'id': soundData['id'],
+                                    'created_at': soundData['created_at'],
+                                    'permalink_url': soundData['permalink_url'],
+                                    'artwork_url': soundData['artwork_url'],
+                                    'title': soundData['title']
+                                }
+                            except KeyError, e:
+                                logging.info('passing: %s' % e)
+                                logging.info(soundData)
+                        connectedSounds[user_id].append(soundData['id']) # associate with user
                 except urlfetch.DownloadError, e:
                     # Request timed out or failed.
                     logging.info('error getting %s for user %s: %s' %
@@ -123,8 +131,61 @@ class SoundsHandler(webapp2.RequestHandler):
                     logging.error(message)
                     break
         self.response.write(json.dumps({
-            'data': data,
-            'sounds': sounds
+            'kinds': sounds,
+            'connections': connectedSounds,
+            }))
+
+
+class FollowingsHandler(webapp2.RequestHandler):
+    def post(self):
+        self.response.headers.add_header("Access-Control-Allow-Origin", "*")
+        self.response.headers.add_header("Content-Type", "application/json")
+        self.response.headers.add_header("Access-Control-Allow-Headers", "x-requested-with")
+
+        orders = json.loads(self.request.get('orders'))
+        quick = 'quick' in self.request.arguments() # make only 5 reqs, for loacl testing
+        reqs = makeRequests(orders, quick)
+
+        # consolidate received users:
+        # store relevant data for each users and associate followings with users
+        users = {}
+        followings = {}
+
+        for (user_id,req_dict) in reqs.iteritems():
+            followings[user_id] = []
+            for (data_type, rpc) in req_dict.iteritems():
+                try:
+                    result = rpc.get_result()
+                    if result.status_code != 200: continue
+                    followingList = json.loads(result.content)
+                    for userData in followingList:
+                        if userData['id'] not in users:
+                            try:
+                                users[userData['id']] = { # data relevant for us
+                                    'id': userData['id'],
+                                    'avatar_url': userData['avatar_url'],
+                                    'followings_count': userData['followings_count'],
+                                    'full_name': userData['full_name'],
+                                    'permalink': userData['permalink'],
+                                    'permalink_url': userData['permalink_url'],
+                                    'playlist_count': userData['playlist_count'],
+                                    'track_count': userData['track_count'],
+                                    'username': userData['username'],
+                                }
+                            except KeyError, e:
+                                logging.info('passing: %s' % e)
+                                logging.info(userData)
+                        followings[user_id].append(userData['id']) # associate with user
+                except urlfetch.DownloadError, e:
+                    # Request timed out or failed.
+                    logging.info('error getting %s for user %s: %s' %
+                        (data_type,user_id, str(e)))
+                except apiproxy_errors.OverQuotaError, message:
+                    logging.error(message)
+                    break
+        self.response.write(json.dumps({
+            'kinds': users,
+            'connections': followings
             }))
 
 
@@ -194,4 +255,5 @@ app = webapp2.WSGIApplication([
        webapp2.Route(r'/showstats', handler=ShowStats, name='showstats'),
        webapp2.Route(r'/getData', handler=DataHandler, name='getData'),
        webapp2.Route(r'/getSounds', handler=SoundsHandler, name='getSounds'),
+       webapp2.Route(r'/getFollowings', handler=FollowingsHandler, name='getFollowings'),
        ],debug=True)
