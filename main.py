@@ -197,70 +197,10 @@ class FollowingsHandler(webapp2.RequestHandler):
             }))
 
 
-class DataHandler(webapp2.RequestHandler):
-    def post(self):
-        orders = json.loads(self.request.get('orders'))
-        req_counter = 0
-        reqs = {}
-        # for each user, get whatever is requested
-        for (user_id, user_data) in orders.iteritems():
-            # speedy mode for development
-            if 'quick' in self.request.arguments() and req_counter >= 1:
-                break
-            if req_counter >= 500:
-                logging.info('skipping remaining requests')
-                break
-            reqs[user_id] = {}
-            # user_data is list of data_types in the SC API
-            for data_type in user_data:
-                # fire requests to SC API
-                rpc = urlfetch.create_rpc(deadline=3)
-                urlfetch.make_fetch_call(
-                    rpc, SC_BASE_URL + user_id + '/' + data_type + SC_URL_END)
-                reqs[user_id][data_type] = rpc
-                # bump counter
-                req_counter +=1
-        logging.info('%s reqs out' % req_counter)
-
-        # all requests are fired, start waiting for responses
-        # resps = {}
-        self.response.write('{')
-        userComma = False
-        for (user_id,req_dict) in reqs.iteritems():
-            # resps[user_id] = {}
-            if userComma: self.response.write(',')
-            self.response.write('"%s": {' % user_id)
-            itemComma = False
-            for (data_type, rpc) in req_dict.iteritems():
-                try:
-                    result = rpc.get_result()
-                    if result.status_code == 200:
-                        if itemComma: self.response.write(',')
-                        self.response.write('"%s":' % data_type)
-                        self.response.write(result.content)
-                        itemComma = True
-                except urlfetch.DownloadError, e:
-                    # Request timed out or failed.
-                    logging.info('error getting %s for user %s: %s' %
-                        (data_type,user_id, str(e)))
-                except apiproxy_errors.OverQuotaError, message:
-                    logging.error(message)
-                    break
-            self.response.write('}')
-            userComma = True
-        self.response.write('}')
-        logging.info('responses in')
-        self.response.headers.add_header("Access-Control-Allow-Origin", "*")
-        self.response.headers.add_header("Content-Type", "application/json")
-        self.response.headers.add_header("Access-Control-Allow-Headers", "x-requested-with")
-        # self.response.write(json.dumps(resps))
-
-
 
 app = webapp2.WSGIApplication([
        webapp2.Route(r'/log', handler=LogHandler, name='log'),
        webapp2.Route(r'/showstats', handler=ShowStats, name='showstats'),
-       webapp2.Route(r'/getData', handler=DataHandler, name='getData'),
        webapp2.Route(r'/getSounds', handler=SoundsHandler, name='getSounds'),
        webapp2.Route(r'/getFollowings', handler=FollowingsHandler, name='getFollowings'),
        ],debug=True)
