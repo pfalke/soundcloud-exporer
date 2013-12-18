@@ -109,6 +109,13 @@ class SoundsHandler(webapp2.RequestHandler):
                     result = rpc.get_result()
                     if result.status_code != 200: continue
                     soundList = json.loads(result.content)
+                    # concatenate playlists into a list of sounds
+                    if data_type == 'playlists':
+                        playlists = soundList
+                        soundList = []
+                        for pl in playlists:
+                            soundList += pl['tracks']
+
                     for soundData in soundList:
                         if soundData['id'] not in sounds:
                             try:
@@ -122,7 +129,8 @@ class SoundsHandler(webapp2.RequestHandler):
                             except KeyError, e:
                                 logging.info('passing: %s' % e)
                                 logging.info(soundData)
-                        connectedSounds[user_id].append(soundData['id']) # associate with user
+                        # associate with user
+                        connectedSounds[user_id].append(soundData['id'])
                 except urlfetch.DownloadError, e:
                     # Request timed out or failed.
                     logging.info('error getting %s for user %s: %s' %
@@ -231,7 +239,6 @@ class DataHandler(webapp2.RequestHandler):
                         self.response.write('"%s":' % data_type)
                         self.response.write(result.content)
                         itemComma = True
-                        # resps[user_id][data_type] = result.content # json.loads(result.content)
                 except urlfetch.DownloadError, e:
                     # Request timed out or failed.
                     logging.info('error getting %s for user %s: %s' %

@@ -117,6 +117,7 @@ $(document).ready(function() {
 			entry.querySelector('.contentName').href = user.userData.permalink_url
 			$('<a user_id="' + user.userData.id + '" href="/' + user.userData.permalink +
 				'" class="label label-warning userlink" style="margin-left:5px;">View graph</a>')
+				.click(switchToUserOnClick)
 				.appendTo(entry.querySelector('li'))
 			theList.appendChild(entry)
 		})
@@ -148,7 +149,7 @@ $(document).ready(function() {
 		$.each(soundList, function(index, sound) {
 			graphSrc += sound.soundData.title + ' {color:#f60}\n' // sound nodes have orange background
 			// check which users to connect to the node
-			$.each(sound.connectedUsersAtDegree(degreeConsidered), function(i, user) {
+			$.each(sound.getConnectedUsersAtDegree(degreeConsidered), function(i, user) {
 				if (userCounts[user.userData.id]>= minRelevantSounds) {
 					graphSrc += user.userData.username + ' -> ' + sound.soundData.title + '\n'
 					// add user to list 
@@ -182,16 +183,18 @@ $(document).ready(function() {
 			soundsInGraph = []
 			userCounts = {}
 			for (var soundId in sounds) {
+				var sound = sounds[soundId]
+				var connectedUsers = sound.getConnectedUsersAtDegree(degreeConsidered)
 				// criteria for inclusion of sound:
 				// (if keepFresh only sounds not connected to root user)
 				// sound needs to have enough connected users below degreeConsidered
 				// sound must not be too old
-				if (sounds[soundId].ageDays <= maxAge &&
-					(!keepFresh || users[rootID].sounds.indexOf(sounds[soundId])== -1) &&
-					sounds[soundId].connectedUsersAtDegree(degreeConsidered).length>=minConnectedUsers) {
-					soundsInGraph.push(sounds[soundId])
+				if (sound.ageDays <= maxAge &&
+					(!keepFresh || users[rootID].sounds.indexOf(sound)== -1) &&
+					connectedUsers.length>=minConnectedUsers) {
+					soundsInGraph.push(sound)
 					// bump count for each user associated with sound
-					$.each(sounds[soundId].connectedUsersAtDegree(degreeConsidered), bumpUserCount)
+					$.each(connectedUsers, bumpUserCount)
 				}
 			}
 		}
@@ -294,13 +297,8 @@ $(document).ready(function() {
 	function Sound(id, sound_obj) {
 		this.id = id
 		if (sound_obj) this.soundData = sound_obj
-		this.connectedUsers = {
-			'0': [], // users at degree ... that have favorited etc this sound
-			'1': [],
-			'2': [],
-			'3': [],
-			'4': [],
-		}
+
+		this.allConnectedUsers = []
 
 		// creation date on Soundcloud, age in days
 		this.created = new Date(sound_obj.created_at)
@@ -311,6 +309,15 @@ $(document).ready(function() {
 			var connectedUsers = []
 			for (var i=0; i<=degree; i++) {
 				connectedUsers = connectedUsers.concat(this.connectedUsers[i])
+			}
+			return connectedUsers
+		}
+		this.getConnectedUsersAtDegree = function(degree) {
+			var connectedUsers = []
+			for (var i=0; i<this.allConnectedUsers.length; i++) {
+				var user = this.allConnectedUsers[i]
+				if (user.degree<=degree)
+					{connectedUsers.push(user)}
 			}
 			return connectedUsers
 		}
@@ -332,19 +339,25 @@ $(document).ready(function() {
 			var user, dataForUser
 			var idsToQuery = {}
 			var batches = [] // we request at most 200 objects from API at a time
-			var counterCache = 0, counterAPI = 0
-			// for data retrieved from cache or backend
-			// var dataLoaded = {}
+			var counterAPI = 0
 			for (var userId in users) {
+				var show = (userId == rootID)
 				user = users[userId]
 				// check if degree OK and we have not queried this data for this user before
 				// check connected users only if user has enough cool sounds (more than his degree)
 				var userGood = (!user.queried[dataType] && user.degree<=degree &&
 					(dataType == 'sounds' || user.coolSounds.length>user.degree))
 				if (!userGood) {
+					if (show) {console.log(user)
+					console.log(!user.queried[dataType])
+					console.log(user.degree<=degree)
+					console.log(user.coolSounds.length>user.degree)
+					console.log(user.coolSounds.length)
+					console.log(user.degree)
+				}
 					continue
 				}
-				// dataLoaded[userId] = {}
+				if (show) console.log('good')
 				idsToQuery[userId] = [] // list of things to request from API
 				for (var i = 0; i<dataTypes[dataType].length; i++) {
 					var currDataType = dataTypes[dataType][i]
@@ -355,16 +368,10 @@ $(document).ready(function() {
 						(currDataType == 'tracks' && user.userData.track_count === 0) ||
 						(currDataType == 'followings' && user.userData.followings_count === 0))
 					if (skip) {
+						if (show) console.log('skip 2')
 						continue
 					}
-					// // check if data can be pulled from cache
-					// dataForUser = lscache.get(userId+currDataType)
-					// if (dataForUser) { // found in cache
-						// dataLoaded[userId][currDataType] = dataForUser
-						// counterCache +=1
-						// continue
-					// }
-
+					if (show) console.log('better')
 					// get from API
 					idsToQuery[userId].push(currDataType)
 					counterAPI +=1
@@ -380,7 +387,6 @@ $(document).ready(function() {
 
 			if (counterAPI>0) {batches.push(idsToQuery)}
 
-			// getAPIData(batches, dataLoaded, dataType, degree)
 			getData(batches, dataType, degree)
 		}
 
@@ -399,6 +405,13 @@ $(document).ready(function() {
 				'connections': {} // {user: [sound_id, sound_id, ...]} or equiv for followings
 			}
 
+			// sometimes all data is already in memory, i.e. batches == []
+			// then, immediate start processing, no requests need to be made
+			if (!batches.length) {
+				console.log('skip')
+				processData(dataLoaded, dataType, degree)
+			}
+
 			$.each(batches, function(i, batch) {
 				unfinishedRequests +=1
 				$.post(url, {
@@ -415,12 +428,11 @@ $(document).ready(function() {
 						console.log('took ' + (then-now) + 'ms to get data')
 					}
 					processData(dataLoaded, dataType, degree)
-
 				}).fail(function(resp) {
 					console.log(resp)
 					unfinishedRequests -=1
 					if (!unfinishedRequests) {
-						processLoadedData(dataLoaded, dataType, degree)
+						processData(dataLoaded, dataType, degree)
 					}
 				})
 			})
@@ -455,8 +467,10 @@ $(document).ready(function() {
 				user.queried.sounds = true
 				for (var i = 0; i<soundList.length; i++) {
 					var sound = sounds[soundList[i]]
-					user.sounds.push(sound)
-					sound.connectedUsers[degree].push(user)
+					if (user.sounds.indexOf(sound) == -1)
+						{user.sounds.push(sound)}
+					if (sound.allConnectedUsers.indexOf(user) == -1)
+						{sound.allConnectedUsers.push(user)}
 
 					// sounds in common with root user are cool
 					if (users[rootID].sounds.indexOf(sound)>=0) {
@@ -465,8 +479,13 @@ $(document).ready(function() {
 				}
 			})
 
+			// connectSoundsToUsersAtDegree(degree)
+
 			var then = new Date()
-			console.log('took ' + (then-now) + 'ms to store sounds')
+			console.log('took ' + (then-now) + 'ms to store sounds at degree ' + degree)
+			console.log(users)
+			console.log(users[rootID])
+			console.log(sounds)
 
 			// we're done with this degree. update buttons and graph as fit
 			// enable button for this degree to allow user to look at data
@@ -475,7 +494,7 @@ $(document).ready(function() {
 			}
 			// start retrieving connectedUsers unless we reached finalDegree
 			if (degree<finalDegree) {
-				loadDataAtMaxDegree('connectedUsers' ,degree)
+				loadDataAtMaxDegree('connectedUsers',degree)
 				$('#btnDegree'+(degree+1)).addClass('loading')
 			}
 
@@ -538,6 +557,22 @@ $(document).ready(function() {
 
 	// USER INTERACTIONS etc
 
+	// function connectSoundsToUsersAtDegree(degree) {
+	// 	console.log('deg ' + degree)
+	// 	for (var user_id in users) {
+	// 		var user = users[user_id]
+	// 		if (user.degree != degree)
+	// 			{continue}
+	// 		console.log(user.degree)
+	// 		// associate with sounds at given level
+	// 		for (var i = 0; i<user.sounds.length; i++) {
+	// 			var sound = user.sounds[i]
+	// 			sound.connectedUsers[degree].push(user)
+	// 		}
+	// 	}
+	// 	console.log(users)
+	// }
+
 	function checkCoolSounds() {
 		var cools = users[rootID].sounds
 		for (var userId in users) {
@@ -552,9 +587,11 @@ $(document).ready(function() {
 
 	// make sure the followings of a given degree are set to <=degree+1
 	function setDegree(degree) {
-		for (var user in users) {
+		for (var user_id in users) {
+			var user = users[user_id]
 			if (user.degree != degree)
 				{continue}
+			// make sure all followings are of degree <=degree+1
 			for (var i = 0; i<user.followings.length; i++) {
 				if (user.followings[i].degree>degree+1)
 					{user.followings[i].degree = degree+1}
@@ -690,9 +727,6 @@ $(document).ready(function() {
 
 
 
-	lscache.flush()
-
-
 	// START HERE
 	// display "Loading"
     var mcp = HalfViz("#halfviz")
@@ -706,19 +740,18 @@ $(document).ready(function() {
 	start()
 
 	// clicking on a list item in the dashboard starts graph for that user
-	$('.userlink').click(function(e) {
+	function switchToUserOnClick(e) {
+		e.preventDefault()
 		// stop the current search
 		window.currDataRetrieval.stop()
 		// user degrees will be set to match new root
-		for (var user in  users) {
+		$.each(users, function(user_id, user) {
 			user.degree = 999
 			user.coolSounds = []
-		}
-		e.preventDefault()
-		var id = $(this).prop('user_id')
-		startWithId(id)
-		return false
-	})
+		})
+
+		startWithId(this.getAttribute('user_id'))
+	}
 
 	// startWithId('emeli-st-rmer')
 	// emeli-st-rmer
