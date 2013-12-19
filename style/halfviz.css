@@ -206,17 +206,17 @@ a.update{
   text-decoration:underline;
 }
 */
-#dashboard span.help{
+#dashboard a.help{
   display:block;
   float:right;
   /*background:url(help-button.png) top left;*/
   /*width:22px;*/
   height:22px;
   margin:16px 14px 0 60px;
-  text-indent:-66px;
+  /*text-indent:-66px;*/
   vertical-align:bottom;
-  text-decoration:none;
-  color:black;
+  /*text-decoration:none;*/
+  /*color:black;*/
   font:12px/30px Arial, sans-serif;
 }
 #dashboard .help:hover{

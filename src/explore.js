@@ -753,6 +753,8 @@ $(document).ready(function() {
 		startWithId(this.getAttribute('user_id'))
 	}
 
+
+	$('#created-by').tooltip()
 	// startWithId('emeli-st-rmer')
 	// emeli-st-rmer
 	// eleonore-van-roosendaal
