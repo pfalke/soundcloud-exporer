@@ -18,8 +18,8 @@
 
 // $.each(urls, queryUrl)
 //['38362040', '33227328']  ['4406624', '49726826']
-var cons = ['followings', 'followers']
-var sounds = ['favorites', 'tracks']
+// var cons = ['followings', 'followers']
+// var sounds = ['favorites', 'tracks']
 
 
 // var requestData = {
@@ -27,25 +27,34 @@ var sounds = ['favorites', 'tracks']
 //'sounds': JSON.stringify(["16730", "884726", "4406624", "1279586", "29476363", "216863", "2663", "23486580", "716605", "7293319", "10700845", "863558", "1541843", "42609305", "2393812", "1171", "4625855", "10032807", "1169682", "304967", "3836178", "114557", "557633", "41792998", "9266733", "95054", "34429891", "11035472", "4114825", "27622444", "150394"])
 // }
 
-var users = ["16730", "884726", "4406624", "1279586", "29476363", "216863", "2663", "23486580", "716605", "7293319", "10700845", "863558", "1541843", "42609305", "2393812", "1171", "4625855", "10032807", "1169682", "304967", "3836178", "114557", "557633", "41792998", "9266733", "95054", "34429891", "11035472", "4114825", "27622444", "150394"]
+// var users = ["16730", "884726", "4406624", "1279586", "29476363", "216863", "2663", "23486580", "716605", "7293319", "10700845", "863558", "1541843", "42609305", "2393812", "1171", "4625855", "10032807", "1169682", "304967", "3836178", "114557", "557633", "41792998", "9266733", "95054", "34429891", "11035472", "4114825", "27622444", "150394"]
 
-var requestData = {}
-for (var u in users) {
-	requestData[users[u]] = cons.concat(sounds)
+// var requestData = {}
+// for (var u in users) {
+// 	requestData[users[u]] = cons.concat(sounds)
+// }
+// var now = new Date()
+// var url = 'https://soundcloud-explore.appspot.com/getData'
+// // var url = '/getData'
+// $.post(url, {
+// 	'orders' : JSON.stringify(requestData),
+// 	'quicks': 'true'
+// }).done(function(resp) {
+// 	var before = new Date()
+// 	console.log(JSON.parse(resp))
+
+// 	var newDate = new Date()
+// 	console.log('took ' + (newDate - now)+ 'ms')
+// 	console.log('took ' + (before - now)+ 'ms')
+// })
+
+function Test() {
+	this.count = 0
 }
-var now = new Date()
-var url = 'https://soundcloud-explore.appspot.com/getData'
-// var url = '/getData'
-$.post(url, {
-	'orders' : JSON.stringify(requestData),
-	'quicks': 'true'
-}).done(function(resp) {
-	var before = new Date()
-	console.log(JSON.parse(resp))
 
-	var newDate = new Date()
-	console.log('took ' + (newDate - now)+ 'ms')
-	console.log('took ' + (before - now)+ 'ms')
-})
-
-
+var t = new Test()
+console.log(t.count)
+console.log(t)
+t.count +=1
+console.log(t.count)
+console.log(t)
