@@ -547,15 +547,6 @@ $(document).ready(function() {
 				sound.allConnectedUsers[i].numCoolSounds +=1
 			}
 		})
-
-		// iterate all users that are loaded already. user loaded later will be checked upon loading
-		// $.each(users, function(user_id, user) {
-		// 	for (var i=0; i<user.sounds.length; i++) {
-		// 		if (user.sounds[i].isCool) {
-		// 			user.numCoolSounds +=1
-		// 		}
-		// 	}
-		// })
 	}
 
 	// make sure the followings of a given degree are set to <=degree+1
