@@ -313,13 +313,6 @@ $(document).ready(function() {
 		this.ageDays = Math.floor((now - this.created)/1000/60/60/24)
 
 		// returns list of users up to given degree have favorited etc this sound
-		this.connectedUsersAtDegree = function(degree) {
-			var connectedUsers = []
-			for (var i=0; i<=degree; i++) {
-				connectedUsers = connectedUsers.concat(this.connectedUsers[i])
-			}
-			return connectedUsers
-		}
 		this.getConnectedUsersAtDegree = function(degree) {
 			var connectedUsers = []
 			for (var i=0; i<this.allConnectedUsers.length; i++) {
@@ -545,46 +538,24 @@ $(document).ready(function() {
 
 	}
 
-
-
-
-
-
-
-
-	// USER INTERACTIONS etc
-
-	// function connectSoundsToUsersAtDegree(degree) {
-	// 	console.log('deg ' + degree)
-	// 	for (var user_id in users) {
-	// 		var user = users[user_id]
-	// 		if (user.degree != degree)
-	// 			{continue}
-	// 		console.log(user.degree)
-	// 		// associate with sounds at given level
-	// 		for (var i = 0; i<user.sounds.length; i++) {
-	// 			var sound = user.sounds[i]
-	// 			sound.connectedUsers[degree].push(user)
-	// 		}
-	// 	}
-	// 	console.log(users)
-	// }
-
 	function checkCoolSounds() {
 
 		// mark root users sounds
 		$.each(users[rootID].sounds, function(id, sound) {
 			sound.isCool = true
+			for (var i=0; i<sound.allConnectedUsers.length; i++) {
+				sound.allConnectedUsers[i].numCoolSounds +=1
+			}
 		})
 
 		// iterate all users that are loaded already. user loaded later will be checked upon loading
-		$.each(users, function(user_id, user) {
-			for (var i=0; i<user.sounds.length; i++) {
-				if (user.sounds[i].isCool) {
-					user.numCoolSounds +=1
-				}
-			}
-		})
+		// $.each(users, function(user_id, user) {
+		// 	for (var i=0; i<user.sounds.length; i++) {
+		// 		if (user.sounds[i].isCool) {
+		// 			user.numCoolSounds +=1
+		// 		}
+		// 	}
+		// })
 	}
 
 	// make sure the followings of a given degree are set to <=degree+1
@@ -601,29 +572,14 @@ $(document).ready(function() {
 		}
 	}
 
-	// set degrees of seperation for all loaded users, starting out with the root user
-	// perform BFS
-	function setDegrees() {
-		users[rootID].degree = 0
-		var currDegree = 0
-		var unprocessedCurrDegree = [users[rootID]]
-		while (degree < finalDegree) {
-			var unprocessedNextDegree = []
-			for (var i=0; i<unprocessedCurrDegree.length; i++) {
-				var followings = unprocessedCurrDegree[i].followings
-				for (var j=0; j<followings.length; j++) {
-					// degree has already been set for those in unprocessedNextDegree and in unprocessedCurrDegree
-					// hence we can skip anyone with such a degree
-					if (followings[j].degree<=currDegree+1)
-						{continue}
-					followings[i].degree = currDegree +1
-					unprocessedNextDegree.push(followings[i])
-				}
-			}
-			degree +=1
-			unprocessedCurrDegree = unprocessedNextDegree
-		}
-	}
+
+
+
+
+
+
+
+	// USER INTERACTIONS etc
 
 	function startWithOAuthUser() {
 		// retrive accessToken from LocalStorage
