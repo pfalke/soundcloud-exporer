@@ -267,7 +267,7 @@ $(document).ready(function() {
 
 	// MANAGE GRAPH DATA
 
-	var finalDegree = 2 // how much data to fetch (degrees of separation from root user)
+	var finalDegree = 4 // how much data to fetch (degrees of separation from root user)
 
 	var users = {} // the users that have been processed, indexed by ID
 	var sounds = {} // the tracks that have been sighted, indexed by ID
@@ -444,8 +444,8 @@ $(document).ready(function() {
 						console.log('took ' + (then-now) + 'ms to get data')
 					}
 					processData(dataLoaded, dataType, degree)
-				}).fail(function(resp) {
-					console.log(resp)
+				}).fail(function(jqXHR, stats, err) {
+					console.log(jqXHR.responseText)
 					unfinishedRequests -=1
 					if (!unfinishedRequests) {
 						processData(dataLoaded, dataType, degree)
@@ -527,7 +527,7 @@ $(document).ready(function() {
 
 					// update degree if necessary
 					if (otherUser.degree > user.degree +1) {
-						console.log('update degree')
+						console.log('update degree from ' + otherUser.degree + '  to ' + (user.degree+1))
 						otherUser.degree = user.degree+1
 					}
 				}
@@ -697,7 +697,7 @@ $(document).ready(function() {
 			return
 		}
 		var rootUser = users[id]
-		console.log("Start graph search for user " + rootUser.userData.username)
+		console.log("\n\n\nStart graph search for user " + rootUser.userData.username)
 		rootID = id
 		rootUser.degree = 0
 		// start retrieving data. global variable so it can be stopped

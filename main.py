@@ -138,10 +138,12 @@ class SoundsHandler(webapp2.RequestHandler):
                 except apiproxy_errors.OverQuotaError, message:
                     logging.error(message)
                     break
+        logging.info('responses parsed, write JSON')
         self.response.write(json.dumps({
             'kinds': sounds,
             'connections': connectedSounds,
             }))
+        logging.info('done')
 
 
 class FollowingsHandler(webapp2.RequestHandler):
@@ -190,7 +192,10 @@ class FollowingsHandler(webapp2.RequestHandler):
                         (data_type,user_id, str(e)))
                 except apiproxy_errors.OverQuotaError, message:
                     logging.error(message)
-                    break
+                    logging.error('exiting')
+                    self.error(500)
+                    self.response.write('Over quota. Please wait a few minutes and try again')
+                    return
         self.response.write(json.dumps({
             'kinds': users,
             'connections': followings
