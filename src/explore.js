@@ -217,13 +217,14 @@ $(document).ready(function() {
 		var user, i, j
 		for (i=0; i<goodSounds.length; i++) {
 			var conUsers = goodSounds[i]['connectedUsers']
-			console.log(conUsers)
 			for (j=0; j<conUsers.length; j++) {
 				user = conUsers[j]
 				if (!(user in userCounts))
-					{userCounts[user] = 0}
-				userCounts[user] +=1
-				console.log(user)
+					{userCounts[user] = {
+						'count': 0,
+						'user': user
+					}}
+				userCounts[user]['count'] +=1
 			}
 		}
 		// if chosen by explorer, no users followed by root user are displayed. delete them from the counts
@@ -237,11 +238,12 @@ $(document).ready(function() {
 
 		// convert to Array so it can be sorted later
 		var goodUsers = []
+		console.log(userCounts)
 		for (user in userCounts) {
-			console.log(user.degree)
+			console.log(userCounts[user]['user'])
 			goodUsers.push({
-				'user': user,
-				'count': userCounts[user]
+				'user': userCounts[user]['user'],
+				'count': userCounts[user]['count']
 			})
 		}
 		return goodUsers
