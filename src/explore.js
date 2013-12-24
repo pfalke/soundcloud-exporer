@@ -165,18 +165,23 @@ $(document).ready(function() {
 
 	// prepare graph as string: [user] -> [sound]
 	function writeGraphSrcNew(goodSounds, goodUsers) {
-		// write edges
 		var graphSrc = ''
+		// create list of users for easier iteration
 		var userList = []
-		$.each(soundList, function(index, sound) {
+		var soundList = []
+		$.each(goodUsers, function(i, guObj) {
+			userList.push(guObj.user)
+		})
+		// write edges
+		$.each(goodSounds, function(i, gsObj) {
+			var sound = gsObj.sound
+			soundList.push(sound)
 			graphSrc += sound.soundData.title + ' {color:#f60}\n' // sound nodes have orange background
-			// check which users to connect to the node
-			$.each(sound.getConnectedUsersAtDegree(degreeConsidered), function(i, user) {
-				if (userCounts[user.userData.id]>= minRelevantSounds) {
-					graphSrc += user.userData.username + ' -> ' + sound.soundData.title + '\n'
-					// add user to list 
-					if (userList.indexOf(user) == -1) {userList.push(user)}
-				}
+			// connect users to this node
+			$.each(gsObj.connectedUsers, function(j, user) {
+				if (userList.indexOf(user) == -1)
+					{return}
+				graphSrc += user.userData.username + ' -> ' + sound.soundData.title + '\n'
 			})
 		})
 
@@ -212,11 +217,13 @@ $(document).ready(function() {
 		var user, i, j
 		for (i=0; i<goodSounds.length; i++) {
 			var conUsers = goodSounds[i]['connectedUsers']
+			console.log(conUsers)
 			for (j=0; j<conUsers.length; j++) {
 				user = conUsers[j]
 				if (!(user in userCounts))
 					{userCounts[user] = 0}
 				userCounts[user] +=1
+				console.log(user)
 			}
 		}
 		// if chosen by explorer, no users followed by root user are displayed. delete them from the counts
@@ -231,6 +238,7 @@ $(document).ready(function() {
 		// convert to Array so it can be sorted later
 		var goodUsers = []
 		for (user in userCounts) {
+			console.log(user.degree)
 			goodUsers.push({
 				'user': user,
 				'count': userCounts[user]
