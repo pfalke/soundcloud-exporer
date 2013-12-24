@@ -163,6 +163,83 @@ $(document).ready(function() {
 		writeListsInDashboard(soundList,userList)
 	}
 
+	// prepare graph as string: [user] -> [sound]
+	function writeGraphSrcNew(goodSounds, goodUsers) {
+		// write edges
+		var graphSrc = ''
+		var userList = []
+		$.each(soundList, function(index, sound) {
+			graphSrc += sound.soundData.title + ' {color:#f60}\n' // sound nodes have orange background
+			// check which users to connect to the node
+			$.each(sound.getConnectedUsersAtDegree(degreeConsidered), function(i, user) {
+				if (userCounts[user.userData.id]>= minRelevantSounds) {
+					graphSrc += user.userData.username + ' -> ' + sound.soundData.title + '\n'
+					// add user to list 
+					if (userList.indexOf(user) == -1) {userList.push(user)}
+				}
+			})
+		})
+
+		// pass the source to the parser
+		updateGraph(graphSrc)
+		writeListsInDashboard(soundList,userList)
+	}
+
+	// get sounds that have high enough degree for the graph
+	function getGoodSounds() {
+		var goodSounds = []
+		for (var soundId in sounds) {
+			var sound = sounds[soundId]
+			// criteria for inclusion of sound:
+			// (if keepFresh only sounds not connected to root user)
+			// sound must not be too old
+			var good = (sound.ageDays <= maxAge &&
+				(!keepFresh || !sound.isCool))
+			if (!good)
+				{continue}
+			// we later rank sounds by number of connected users below degreeConsidered
+			var connectedUsers = sound.getConnectedUsersAtDegree(degreeConsidered)
+			goodSounds.push({
+				'sound': sound,
+				'connectedUsers': connectedUsers,
+			})
+		}
+		return goodSounds
+	}
+
+	function getGoodUsers(goodSounds) {
+		var userCounts = {}
+		var user, i, j
+		for (i=0; i<goodSounds.length; i++) {
+			var conUsers = goodSounds[i]['connectedUsers']
+			for (j=0; j<conUsers.length; j++) {
+				user = conUsers[j]
+				if (!(user in userCounts))
+					{userCounts[user] = 0}
+				userCounts[user] +=1
+			}
+		}
+		// if chosen by explorer, no users followed by root user are displayed. delete them from the counts
+		if (newPeople) {
+			for (j=0; j<users[rootID].followings.length; j++) {
+				user = users[rootID].followings[j]
+				if (user in userCounts)
+					{delete userCounts[user]}
+			}
+		}
+
+		// convert to Array so it can be sorted later
+		var goodUsers = []
+		for (user in userCounts) {
+			goodUsers.push({
+				'user': user,
+				'count': userCounts[user]
+			})
+		}
+		return goodUsers
+	}
+
+
 	// returns list of sounds to be included in graph and dict giving how many of these sounds each user is connecteed to
 	var determineGraphNodes = function() {
 		var now = new Date()
@@ -178,78 +255,68 @@ $(document).ready(function() {
 			}
 		}
 
-		// get sounds that have high enough degree for the graph
-		function getSoundsForGraphAndUserCounts() {
-			soundsInGraph = []
-			userCounts = {}
-			for (var soundId in sounds) {
-				var sound = sounds[soundId]
-				var connectedUsers = sound.getConnectedUsersAtDegree(degreeConsidered)
-				// criteria for inclusion of sound:
-				// (if keepFresh only sounds not connected to root user)
-				// sound needs to have enough connected users below degreeConsidered
-				// sound must not be too old
-				if (sound.ageDays <= maxAge &&
-					(!keepFresh || users[rootID].sounds.indexOf(sound)== -1) &&
-					connectedUsers.length>=minConnectedUsers) {
-					soundsInGraph.push(sound)
-					// bump count for each user associated with sound
-					$.each(connectedUsers, bumpUserCount)
-				} else {
-					// console.log(connectedUsers)
-					// console.log(connectedUsers.length)
-				}
-			}
-		}
+		var goodSounds = getGoodSounds()
 
-		getSoundsForGraphAndUserCounts()
+		// include the 5-15 sounds with the most connections into the graph
+		// sort goodSounds by number of connections
+		goodSounds.sort(function(a, b) {return a['connectedUsers'].length - b['connectedUsers'].length})
+		goodSounds = goodSounds.slice(-15)
+		goodSounds.reverse()
+		console.log(goodSounds)
 
-		// there should be 5-15 sounds in the graph. adjust parameters as long as it makes sense
-		while (soundsInGraph.length> 15 && minConnectedUsers<25) {
-			minConnectedUsers +=1
-			if (logging.paramterChanges) {console.log('increased nodeDegree to '+ minConnectedUsers +
-							', had ' + soundsInGraph.length + ' sounds')}
-			getSoundsForGraphAndUserCounts()
-		}
-		while (soundsInGraph.length< 5 && minConnectedUsers>3) {
-			minConnectedUsers -=1
-			if (logging.paramterChanges) {console.log('decreased nodeDegree to '+ minConnectedUsers +
-				', had ' + soundsInGraph.length + ' sounds')}
-			getSoundsForGraphAndUserCounts()
-		}
+		var goodUsers = getGoodUsers(goodSounds)
+		goodUsers.sort(function(a, b) {return a['count'] - b['count']})
+		goodUsers.slice(-10)
+		goodUsers.reverse()
+		console.log(goodUsers)
 
-		// if active, no users followed by root user are displayed. Therefore make their userCounts 0
-		if (newPeople) {
-			for (var j=0; j<users[rootID].followings.length; j++) {
-				userCounts[users[rootID].followings[j].id] = 0
-			}
-		}
+		writeGraphSrcNew(goodSounds, goodUsers)
+
+		// // there should be 5-15 sounds in the graph. adjust parameters as long as it makes sense
+		// while (soundsInGraph.length> 15 && minConnectedUsers<25) {
+		// 	minConnectedUsers +=1
+		// 	if (logging.paramterChanges) {console.log('increased nodeDegree to '+ minConnectedUsers +
+		// 					', had ' + soundsInGraph.length + ' sounds')}
+		// 	getSoundsForGraphAndUserCounts()
+		// }
+		// while (soundsInGraph.length< 5 && minConnectedUsers>3) {
+		// 	minConnectedUsers -=1
+		// 	if (logging.paramterChanges) {console.log('decreased nodeDegree to '+ minConnectedUsers +
+		// 		', had ' + soundsInGraph.length + ' sounds')}
+		// 	getSoundsForGraphAndUserCounts()
+		// }
+
+		// // if active, no users followed by root user are displayed. Therefore make their userCounts 0
+		// if (newPeople) {
+		// 	for (var j=0; j<users[rootID].followings.length; j++) {
+		// 		userCounts[users[rootID].followings[j].id] = 0
+		// 	}
+		// }
 	
-		// there should be 5-15 users in the graph. adjust parameters as long as it makes sense
-		var bigUsers
-		var computeNumerBigUsers = function() {
-			bigUsers = 0
-			for (var i in userCounts) {
-				// criteria for user to be displayed:
-				// connected to enough relevant sound and (if active) not followed by root user
-				// (!newPeople || users[rootID].followings.indexOf(users[i]) == -1)
-				if (userCounts[i]>minRelevantSounds) {bigUsers+=1}
-			}
-		}
-		computeNumerBigUsers()
-		while (bigUsers<5 && minRelevantSounds>1) {
-			minRelevantSounds -=1
-			computeNumerBigUsers()
-		}
-		while (bigUsers>8 && minRelevantSounds<15) {
-			minRelevantSounds +=1
-			console.log(minRelevantSounds)
-			computeNumerBigUsers()
-		}
+		// // there should be 5-15 users in the graph. adjust parameters as long as it makes sense
+		// var bigUsers
+		// var computeNumerBigUsers = function() {
+		// 	bigUsers = 0
+		// 	for (var i in userCounts) {
+		// 		// criteria for user to be displayed:
+		// 		// connected to enough relevant sound and (if active) not followed by root user
+		// 		// (!newPeople || users[rootID].followings.indexOf(users[i]) == -1)
+		// 		if (userCounts[i]>minRelevantSounds) {bigUsers+=1}
+		// 	}
+		// }
+		// computeNumerBigUsers()
+		// while (bigUsers<5 && minRelevantSounds>1) {
+		// 	minRelevantSounds -=1
+		// 	computeNumerBigUsers()
+		// }
+		// while (bigUsers>8 && minRelevantSounds<15) {
+		// 	minRelevantSounds +=1
+		// 	console.log(minRelevantSounds)
+		// 	computeNumerBigUsers()
+		// }
+		// writeGraphSrc(soundsInGraph, userCounts)
 
-		writeGraphSrc(soundsInGraph, userCounts)
-		// update again in .5 sec
-		// setTimeout(writeGraphSource, 800)
+
 		var then = new Date()
 		if (logging.redraws)
 			{console.log('took ' + (then-now) + 'ms to determine graph with ' + soundsInGraph.length + ' sounds')}
