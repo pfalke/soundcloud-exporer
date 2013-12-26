@@ -219,31 +219,29 @@ $(document).ready(function() {
 			var conUsers = goodSounds[i]['connectedUsers']
 			for (j=0; j<conUsers.length; j++) {
 				user = conUsers[j]
-				if (!(user in userCounts))
-					{userCounts[user] = {
+				if (!(user.id in userCounts))
+					{userCounts[user.id] = {
 						'count': 0,
 						'user': user
 					}}
-				userCounts[user]['count'] +=1
+				userCounts[user.id]['count'] +=1
 			}
 		}
 		// if chosen by explorer, no users followed by root user are displayed. delete them from the counts
 		if (newPeople) {
 			for (j=0; j<users[rootID].followings.length; j++) {
 				user = users[rootID].followings[j]
-				if (user in userCounts)
-					{delete userCounts[user]}
+				if (user.id in userCounts)
+					{delete userCounts[user.id]}
 			}
 		}
 
 		// convert to Array so it can be sorted later
 		var goodUsers = []
-		console.log(userCounts)
-		for (user in userCounts) {
-			console.log(userCounts[user]['user'])
+		for (var userId in userCounts) {
 			goodUsers.push({
-				'user': userCounts[user]['user'],
-				'count': userCounts[user]['count']
+				'user': userCounts[userId]['user'],
+				'count': userCounts[userId]['count']
 			})
 		}
 		return goodUsers
@@ -276,7 +274,7 @@ $(document).ready(function() {
 
 		var goodUsers = getGoodUsers(goodSounds)
 		goodUsers.sort(function(a, b) {return a['count'] - b['count']})
-		goodUsers.slice(-10)
+		goodUsers = goodUsers.slice(-10)
 		goodUsers.reverse()
 		console.log(goodUsers)
 
@@ -329,7 +327,7 @@ $(document).ready(function() {
 
 		var then = new Date()
 		if (logging.redraws)
-			{console.log('took ' + (then-now) + 'ms to determine graph with ' + soundsInGraph.length + ' sounds')}
+			{console.log('took ' + (then-now) + 'ms to determine graph')} //  with ' + soundsInGraph.length + ' sounds
 	}
 
 
@@ -344,7 +342,7 @@ $(document).ready(function() {
 
 	// MANAGE GRAPH DATA
 
-	var finalDegree = 4 // how much data to fetch (degrees of separation from root user)
+	var finalDegree = 2 // how much data to fetch (degrees of separation from root user)
 
 	var users = {} // the users that have been processed, indexed by ID
 	var sounds = {} // the tracks that have been sighted, indexed by ID
