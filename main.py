@@ -186,7 +186,7 @@ class FollowingsHandler(webapp2.RequestHandler):
                                     'username': userData['username'],
                                 }
                             except KeyError, e:
-                                logging.info('passing: %s' % e)
+                                logging.error('passing: %s' % e)
                                 logging.info(userData)
                         followings[user_id].append(userData['id']) # associate with user
                 except urlfetch.DownloadError, e:

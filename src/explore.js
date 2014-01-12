@@ -159,6 +159,8 @@ $(document).ready(function() {
 			})
 		})
 
+		graphSrc += users[rootID].userData.username + ' {color:blue}\n'
+
 		// pass the source to the parser
 		updateGraph(graphSrc)
 		writeListsInDashboard(soundList,userList)
@@ -243,15 +245,13 @@ $(document).ready(function() {
 		// include the 5-15 sounds with the most connections into the graph
 		// sort goodSounds by number of connections
 		goodSounds.sort(function(a, b) {return a['connectedUsers'].length - b['connectedUsers'].length})
-		goodSounds = goodSounds.slice(-25)
+		goodSounds = goodSounds.slice(-15)
 		goodSounds.reverse()
-		console.log(goodSounds)
 
 		var goodUsers = getGoodUsers(goodSounds)
 		goodUsers.sort(function(a, b) {return a['count'] - b['count']})
-		goodUsers = goodUsers.slice(-10)
+		goodUsers = goodUsers.slice(-30)
 		goodUsers.reverse()
-		console.log(goodUsers)
 
 		writeGraphSrcNew(goodSounds, goodUsers)
 
@@ -272,7 +272,7 @@ $(document).ready(function() {
 
 	// MANAGE GRAPH DATA
 
-	var finalDegree = 2 // how much data to fetch (degrees of separation from root user)
+	var finalDegree = 4 // how much data to fetch (degrees of separation from root user)
 
 	var users = {} // the users that have been processed, indexed by ID
 	var sounds = {} // the tracks that have been sighted, indexed by ID
@@ -488,8 +488,12 @@ $(document).ready(function() {
 			}
 
 			// rewrite graph unless we only have data for root user
-			if (degree>0) {
+			if (degree < 2) {
 				determineGraphNodes()
+			}
+
+			// rewrite graph unless we only have data for root user
+			if (degree > 0) {
 				$('#btnDegree'+degree).removeClass('loading')
 			}
 
