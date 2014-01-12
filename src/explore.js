@@ -712,6 +712,12 @@ $(document).ready(function() {
 			sound.isCool = false
 		})
 
+		// reset Degree Buttons
+		degreeConsidered = 1
+		$('.degreeButton').removeClass('loading').removeClass('btn-primary')
+		.removeClass('btn-warning').prop('disabled')
+		$('#btnDegree1').removeAttr('disabled').removeClass('btn-warning').addClass('btn-primary').addClass('loading')
+
 		startWithId(this.getAttribute('user_id'))
 	}
 
