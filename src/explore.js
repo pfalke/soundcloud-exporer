@@ -404,6 +404,54 @@ $(document).ready(function() {
 			getData(batches, dataType, degree)
 		}
 
+		// for which users <= degree we haven't queried this dataType
+		function loadConnectionsAtMaxDegree(dataType, degree) {
+			// outside functions can set this flag, e.g. when root user changes and new search is started
+			if (stop) {
+				return
+			}
+			var user, dataForUser
+			var idsToQuery = {}
+			var batches = [] // we request at most 200 objects from API at a time
+			var counterAPI = 0
+			var goodUsers = []
+			for (var userId in users) {
+				user = users[userId]
+				// check if degree OK and we have not queried this data for this user before
+				// a user at the higher degrees should have a few common likes with root user
+				var userGood = (!user.queried[dataType] && user.degree<=degree &&
+					user.numCoolSounds >= degree)
+				if (userGood) {
+					goodUsers.push(user)
+				}
+			}
+			// we want to have the users with the most sounds in common with the root user
+			goodUsers.sort(function(a, b) {return a.numCoolSounds - b.numCoolSounds})
+			goodUsers = goodUsers.slice(-100)
+			console.log('user with least cool sounds that is considered has ' + goodUsers[0].numCoolSounds + ' cool sounds')
+			$.each(goodUsers, function(i, user) {
+				console.log(user.userData.username)
+			})
+			$.each(goodUsers, function(j, user) {
+				if (user.userData.followings_count > 0) {
+					idsToQuery[user.id] = ['followings']
+					counterAPI +=1
+				}
+
+				// requests are split in batches of ~50 to make load easier to handle for GAE
+				if (counterAPI>=50) {
+					batches.push(idsToQuery)
+					idsToQuery = {}
+					counterAPI = 0
+				}
+			})
+
+			if (counterAPI>0) {batches.push(idsToQuery)}
+			console.log(batches)
+
+			getData(batches, dataType, degree)
+		}
+
 		function getData(batches, dataType, degree) {
 			var now = new Date()
 			if (logging.calls)
@@ -504,7 +552,8 @@ $(document).ready(function() {
 
 			// start retrieving connectedUsers unless we reached finalDegree
 			if (degree<finalDegree) {
-				loadDataAtMaxDegree('connectedUsers',degree)
+				loadConnectionsAtMaxDegree('connectedUsers',degree)
+				// loadDataAtMaxDegree('connectedUsers',degree)
 				$('#btnDegree'+(degree+1)).addClass('loading')
 			}
 		}
