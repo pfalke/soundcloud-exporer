@@ -176,19 +176,19 @@
       <canvas id="viewport" width="800" height="600"></canvas>
       <div id="editor">
         <p>
-          <button id="btnDegree1" degree="1" class="btn btn-primary degreeButton loading">
+          <button id="btnDegree1" degree="1" class="btn btn-primary degreeButton loading" data-container="body" data-toggle="tooltip" data-placement="left" title="" data-original-title="Sounds of the people you follow">
             <span class="spinner"><i class="icon-spin icon-refresh"></i></span>
             Degree 1
           </button><br>
-          <button id="btnDegree2" degree="2" class="btn degreeButton" disabled>
+          <button id="btnDegree2" degree="2" class="btn degreeButton" data-container="body" data-toggle="tooltip" data-placement="left" title="" data-original-title="Sounds of the people followed by the people you follow" disabled>
             <span class="spinner"><i class="icon-spin icon-refresh"></i></span>
             Degree 2
           </button><br>
-          <button id="btnDegree3" degree="3" class="btn degreeButton" disabled>
-            <span class="spinner"><i class="icon-spin icon-refresh"></i></span>
+          <button id="btnDegree3" degree="3" class="btn degreeButton" data-container="body" data-toggle="tooltip" data-placement="left" title="" data-original-title="Sounds of the people followed by the people followed by the people you follow" disabled>
+            <span class="spinner"><i class="icon-spin icon-refresh" data-container="body" data-toggle="tooltip" data-placement="left" title="" data-original-title="Sounds of the people followed by the people followed by the people you follow"></i></span>
             Degree 3
           </button><br>
-          <button id="btnDegree4" degree="4" class="btn degreeButton" disabled>
+          <button id="btnDegree4" degree="4" class="btn degreeButton" data-container="body" data-toggle="tooltip" data-placement="left" title="" data-original-title="Sounds of the people followed by the people followed by the people followed by the people you follow" disabled>
             <span class="spinner"><i class="icon-spin icon-refresh"></i></span>
             Degree 4
           </button><br>
@@ -248,8 +248,8 @@
       <a href="#" class="about active" style="display:none;"><div class="popup"><img src="style/nub.png">About</div>about halfviz</a>
       <a href="#" class="help" style="display:none;">syntax help</a>
       <ul class="controls" style="display:none;">
-        <li class="stiffness">spring tension <span class="frob">10,000</span></li>
-        <li class="repulsion">node repulsion <span class="frob">10,000</span></li>
+        <li class="stiffness">spring tension <span class="frob">1,000</span></li>
+        <li class="repulsion">node repulsion <span class="frob">1,000</span></li>
         <li class="friction">friction <span class="frob">20%</span></li>
         <li class="gravity">gravity <span class="toggle">.</span></li>
       </ul>

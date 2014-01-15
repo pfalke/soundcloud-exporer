@@ -3,7 +3,7 @@
 var logging = {
 	'calls': true,
 	'interactions': false,
-	'redraws': true,
+	'redraws': false,
 }
 
 $(document).ready(function() {
@@ -380,9 +380,9 @@ $(document).ready(function() {
 					// no request needs to be made if we know there is no data
 					// not sure how non-public favorites are handled, so make request anyway for small degrees
 					var skip = ((currDataType == 'playlists' && user.userData.playlist_count === 0) ||
-						(currDataType == 'favorites' && user.userData.public_favorites_count === 0 && degree>1) ||
-						(currDataType == 'tracks' && user.userData.track_count === 0) ||
-						(currDataType == 'followings' && user.userData.followings_count === 0))
+						(currDataType == 'favorites' && user.userData.public_favorites_count < 5 && degree>1) ||
+						(currDataType == 'tracks' && user.userData.track_count < 5) ||
+						(currDataType == 'followings' && user.userData.followings_count < 5))
 					if (skip) {
 						continue
 					}
@@ -410,46 +410,42 @@ $(document).ready(function() {
 			if (stop) {
 				return
 			}
-			var user, dataForUser
-			var idsToQuery = {}
-			var batches = [] // we request at most 200 objects from API at a time
-			var counterAPI = 0
+
+			var userCount = 0
 			var goodUsers = []
 			for (var userId in users) {
-				user = users[userId]
+				userCount +=1
+				var user = users[userId]
 				// check if degree OK and we have not queried this data for this user before
 				// a user at the higher degrees should have a few common likes with root user
-				var userGood = (!user.queried[dataType] && user.degree<=degree &&
-					user.numCoolSounds >= degree)
+				// users with too few followings are not worth an API call
+				// users with too many followings: cannot process all of them, data not meaningful
+				var userGood = (!user.queried.connectedUsers && user.degree<=degree &&
+					user.numCoolSounds >= degree*2 &&
+					((user.userData.followings_count > 3 && user.userData.followings_count<150) ||
+						degree === 0))
 				if (userGood) {
 					goodUsers.push(user)
 				}
 			}
+			console.log('there are ' + userCount + ' users stored now')
+			console.log(goodUsers.length + ' of them are eligible')
+
 			// we want to have the users with the most sounds in common with the root user
 			goodUsers.sort(function(a, b) {return a.numCoolSounds - b.numCoolSounds})
-			goodUsers = goodUsers.slice(-100)
-			console.log('user with least cool sounds that is considered has ' + goodUsers[0].numCoolSounds + ' cool sounds')
-			$.each(goodUsers, function(i, user) {
-				console.log(user.userData.username)
-			})
+			goodUsers = goodUsers.slice(-15)
+			if (goodUsers.length > 0)
+				{console.log('user with least cool sounds that is considered has ' +
+					goodUsers[0].numCoolSounds + ' cool sounds')}
+
+			var idsToQuery = {}
 			$.each(goodUsers, function(j, user) {
-				if (user.userData.followings_count > 0) {
-					idsToQuery[user.id] = ['followings']
-					counterAPI +=1
-				}
-
-				// requests are split in batches of ~50 to make load easier to handle for GAE
-				if (counterAPI>=50) {
-					batches.push(idsToQuery)
-					idsToQuery = {}
-					counterAPI = 0
-				}
+				idsToQuery[user.id] = ['followings']
+				console.log(user.numCoolSounds + ' has followings: ' + user.userData.followings_count +
+					', username: ' + user.userData.username)
 			})
 
-			if (counterAPI>0) {batches.push(idsToQuery)}
-			console.log(batches)
-
-			getData(batches, dataType, degree)
+			getData([idsToQuery], 'connectedUsers', degree)
 		}
 
 		function getData(batches, dataType, degree) {
@@ -772,4 +768,5 @@ $(document).ready(function() {
 
 
 	$('#created-by').tooltip()
+	$('.degreeButton').tooltip()
 })
