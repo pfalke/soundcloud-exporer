@@ -768,6 +768,6 @@ $(document).ready(function() {
 
 
 	$('#created-by').tooltip()
-	$('.degreeButton').tooltip()
-	$('.tooltipped').tooltip()
+	$('.degreeButton').tooltip({delay: { show: 200, hide: 100 }})
+	$('.tooltipped').tooltip({delay: { show: 200, hide: 100 }})
 })

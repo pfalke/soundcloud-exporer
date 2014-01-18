@@ -52,7 +52,7 @@ body{
 
   background:#fffff3;
   border-radius:4px;
-  z-index:1;
+  /*z-index:1;*/
 }
 
 #viewport{
@@ -206,18 +206,18 @@ a.update{
   text-decoration:underline;
 }
 */
-#dashboard a.help{
+#dashboard .help{
   display:block;
   float:right;
   /*background:url(help-button.png) top left;*/
   /*width:22px;*/
-  height:22px;
-  margin:16px 14px 0 60px;
+  /*height:22px;*/
+  margin:10px 14px 0 60px;
   /*text-indent:-66px;*/
-  vertical-align:bottom;
+  /*vertical-align:bottom;*/
   /*text-decoration:none;*/
   /*color:black;*/
-  font:12px/30px Arial, sans-serif;
+  /*font:12px/30px Arial, sans-serif;*/
 }
 #dashboard .help:hover{
   /*background:url(help-button.png) -22px left;*/
