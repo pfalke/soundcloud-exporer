@@ -769,4 +769,5 @@ $(document).ready(function() {
 
 	$('#created-by').tooltip()
 	$('.degreeButton').tooltip()
+	$('.tooltipped').tooltip()
 })

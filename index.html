@@ -194,15 +194,20 @@
           </button><br>
         </p>
         <p>
-          <input type="checkbox" id="keepFresh"/> <label for="keepFresh" style="font-weight: normal;">Keep it fresh</label><br>
-          <input type="checkbox" id="newPeople"/> <label for="newPeople" style="font-weight: normal;">Give me new people</label>
+          <div class="tooltipped" data-toggle="tooltip" data-container="body" data-placement="left" title="" data-original-title="Only show songs not liked/shared by you">
+            <input type="checkbox" id="keepFresh"/> <label for="keepFresh" style="font-weight: normal;">Keep it fresh</label>
+          </div>
+          
+          <div class="tooltipped" data-toggle="tooltip" data-container="body" data-placement="left" title="" data-original-title="Only show people you don't follow">
+            <input type="checkbox" id="newPeople"/> <label for="newPeople" style="font-weight: normal;">Give me new people</label>
+          </div>
         </p>
         <div>
           Date Range
           <div id="dateRangeButtons" class="btn-group btn-group-sm" data-toggle="buttons-radio">
             <button id="btnDateAny" dateRange="any" type="button" class="btn btn-primary active">Any</button>
-            <button id="btnDateFresh" dateRange="fresh" type="button" class="btn btn-primary">Fresh</button>
-            <button id="btnDateHot" dateRange="hot" type="button" class="btn btn-primary">Hot</button>
+            <button id="btnDateFresh" dateRange="fresh" type="button" class="btn btn-primary tooltipped" data-toggle="tooltip" data-container="body" data-placement="bottom" title="" data-original-title="Sounds that are at most 3 months old">Fresh</button>
+            <button id="btnDateHot" dateRange="hot" type="button" class="btn btn-primary tooltipped" data-toggle="tooltip" data-container="body" data-placement="bottom" title="" data-original-title="Sounds that are at most 3 weeks old">Hot</button>
           </div>
         </div>
 
