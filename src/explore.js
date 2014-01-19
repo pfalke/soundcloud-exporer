@@ -627,7 +627,7 @@ $(document).ready(function() {
 	// USER INTERACTIONS etc
 
 	function startWithOAuthUser() {
-		// retrive accessToken from LocalStorage
+		// retrive accessToken from localStorage
 		var accessTokenSC = localStorage.accessTokenSC
 		// when redirected form SC oauth dialog
 		var oauthCode = getParameterByName('code')
@@ -684,6 +684,9 @@ $(document).ready(function() {
 			// log visits of logged in users to their own tree
 			if (id == 'me' && accessTokenSC) {
 				logVisit(user)
+				// store username locally so back button can always be displayed
+				localStorage.oauth_username = user.username
+				localStorage.oauth_user_id = user.id
 			}
 
 			// start algorithm
@@ -699,6 +702,7 @@ $(document).ready(function() {
 		}
 		var rootUser = users[id]
 		console.log("\n\n\nStart graph search for user " + rootUser.userData.username)
+		$('#rootUserInDashboard').text('- based on user ' + rootUser.userData.username).show()
 		rootID = id
 		rootUser.degree = 0
 		// start retrieving data. global variable so it can be stopped
@@ -709,8 +713,21 @@ $(document).ready(function() {
 		history.pushState({id: rootUser.userData.permalink}, '', newurl);
 
 		// show button for Connect to Soundcloud if not connected
-		if (!localStorage.accessTokenSC) {
-			$('#oauth_button').show()
+		if (!localStorage.accessTokenSC) { // user not logged in
+			$('#oauthButton').show()
+			$('#goToOAuthUserButton').hide()
+			console.log('1')
+		} else if (localStorage.oauth_username && rootUser.userData.username != localStorage.oauth_username) {
+			// user logging in and browsing someone else's account
+			$('#oauthButton').hide()
+			$('#goToOAuthUserButton').attr('user_id',localStorage.oauth_user_id).show()
+			.find('button').text('Back to ' + localStorage.oauth_username)
+			console.log('2')
+
+		} else { // user logged in and exploring own account
+			$('#oauthButton').hide()
+			$('#goToOAuthUserButton').hide()
+			console.log('3')
 		}
 	}
 
@@ -766,7 +783,7 @@ $(document).ready(function() {
 		startWithId(this.getAttribute('user_id'))
 	}
 
-
+	$('#goToOAuthUserButton').click(switchToUserOnClick)
 	$('#created-by').tooltip()
 	$('.degreeButton').tooltip({delay: { show: 200, hide: 100 }})
 	$('.tooltipped').tooltip({delay: { show: 200, hide: 100 }})

@@ -44,7 +44,7 @@ body{
 #halfviz{
 /*  float:left;*/
   position:absolute;
-  top:56px;
+  top:64px;
   left:10px;
   right:10px;
   bottom:10px;
@@ -219,11 +219,13 @@ a.update{
   /*color:black;*/
   /*font:12px/30px Arial, sans-serif;*/
 }
-#dashboard .help:hover{
-  /*background:url(help-button.png) -22px left;*/
-  /*text-decoration:underline;*/
-}
 
+.inDashboard {
+  display: table-cell;
+  vertical-align: middle;
+  height: 55px;
+  padding-left: 30px;
+}
 
 
 /* still needed? */

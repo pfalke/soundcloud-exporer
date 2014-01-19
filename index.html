@@ -223,14 +223,6 @@
           </ul>
         </div>
 
-        <div id="oauth_button" style="display:none;">
-          <h4> Check out your own account!</h4>
-            <a href="https://soundcloud.com/connect?response_type=code&scope=non-expiring&client_id=81d9704f45e2b1d224e791d20eb76d2f&redirect_uri=https%3A%2F%2Fsoundcloud-explore.appspot.com%2F">
-              <button class="btn btn-primary">Connect with Soundcloud
-              </button>
-            </a>
-          <!-- [date selector] -->
-        </div>
         <p>
           This is a just-for-fun project. <br> 
           <a href="mailto:x@pfalke.com">Let me know</a> what you think!
@@ -246,10 +238,33 @@
     </div>  
 
     <div id="dashboard">
-      <h3 style="float:left;">Soundcloud Explore</h3>
+      <h3 class="inDashboard">Soundcloud Explore</h3>      
+
+      <!-- show who is the root user -->
+      <h4 class="inDashboard">
+        <span style="display:none;" id="rootUserInDashboard"><span>
+      </h4>        
+      <div class="inDashboard">  
+        <!-- Prompt for oAuth or allow to go back to oAuth user if other user is displayed -->
+        <a href="/" user_id="" style="display:none;" id="goToOAuthUserButton">
+          <button class="btn btn-primary btn-sm">
+          </button>
+        </a>
+
+        <a href="https://soundcloud.com/connect?response_type=code&scope=non-expiring&client_id=81d9704f45e2b1d224e791d20eb76d2f&redirect_uri=https%3A%2F%2Fsoundcloud-explore.appspot.com%2F" style="display:none;" id="oauthButton">
+          <button class="btn btn-primary">See graph for your own Soundcloud!
+          </button>
+        </a>
+
+      </div>
+      <!-- </div> -->
+      <div style="">
+      </div>
+      <div style="margin-left:10%;display: table-cell;vertical-align: middle;height: 70px;">
+      </div>
 
 <!-- Button trigger modal -->
-<button class="btn btn-primary btn help"  data-container="body" data-backdrop="false" data-toggle="modal" data-target="#myModal">
+<button class="btn btn-primary help"  data-container="body" data-backdrop="false" data-toggle="modal" data-target="#myModal">
   About
 </button>
 
@@ -276,23 +291,6 @@
 </div><!-- /.modal -->
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-      <!-- <a href="mailto:x@pfalke.com" target="_blank" class="help" id="created-by" data-toggle="tooltip" data-placement="left" title="" data-original-title="Philipp von Falkenhausen">created by?</a> -->
 
       <!-- old stuff -->
       <a href="#" class="about active" style="display:none;"><div class="popup"><img src="style/nub.png">About</div>about halfviz</a>
