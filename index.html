@@ -238,57 +238,55 @@
     </div>  
 
     <div id="dashboard">
-      <h3 class="inDashboard">Soundcloud Explore</h3>      
+      <div class="dashboardLeft" style="float:left;">
+        <h3 class="inDashboard">Soundcloud Explorer</h3>      
 
-      <!-- show who is the root user -->
-      <h4 class="inDashboard">
-        <span style="display:none;" id="rootUserInDashboard"><span>
-      </h4>        
-      <div class="inDashboard">  
-        <!-- Prompt for oAuth or allow to go back to oAuth user if other user is displayed -->
-        <a href="/" user_id="" style="display:none;" id="goToOAuthUserButton">
-          <button class="btn btn-primary btn-sm">
-          </button>
-        </a>
+        <!-- show who is the root user -->
+        <h4 class="inDashboard">
+          <span style="display:none;" id="rootUserInDashboard"><span>
+        </h4>        
+        <div class="inDashboard">  
+          <!-- Prompt for oAuth or allow to go back to oAuth user if other user is displayed -->
+          <a href="/" user_id="" style="display:none;" id="goToOAuthUserButton">
+            <button class="btn btn-primary btn-sm">
+            </button>
+          </a>
 
-        <a href="https://soundcloud.com/connect?response_type=code&scope=non-expiring&client_id=81d9704f45e2b1d224e791d20eb76d2f&redirect_uri=https%3A%2F%2Fsoundcloud-explore.appspot.com%2F" style="display:none;" id="oauthButton">
-          <button class="btn btn-primary">See graph for your own Soundcloud!
-          </button>
-        </a>
+          <a href="https://soundcloud.com/connect?response_type=code&scope=non-expiring&client_id=81d9704f45e2b1d224e791d20eb76d2f&redirect_uri=https%3A%2F%2Fsoundcloud-explore.appspot.com%2F" style="display:none;" id="oauthButton">
+            <button class="btn btn-primary">See graph for your own Soundcloud!
+            </button>
+          </a>
 
-      </div>
-      <!-- </div> -->
-      <div style="">
-      </div>
-      <div style="margin-left:10%;display: table-cell;vertical-align: middle;height: 70px;">
+        </div>
       </div>
 
-<!-- Button trigger modal -->
-<button class="btn btn-primary help"  data-container="body" data-backdrop="false" data-toggle="modal" data-target="#myModal">
-  About
-</button>
-
-<!-- Modal -->
-<div class="modal fade" id="myModal" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
-  <div class="modal-dialog">
-    <div class="modal-content">
-      <div class="modal-header">
-        <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
-        <h4 class="modal-title" id="myModalLabel">About the Soundcloud Explorer</h4>
-      </div>
-      <div class="modal-body">
-        <p>Created as an interactive tool to discover fresh sounds and new people to follow on Soundcloud.</p>
-        <p>Play around with the settings in the dashboard on your right to explore the sounds and music-lovers around you.</p>
-        <p><a href="mailto:x@pfalke.com" target="_blank">Let me know what you think!</a></p>
-        <p>- Philipp von Falkenhausen</p>
-      </div>
-      <div class="modal-footer">
-        <span style="float:left;">Thanks to Soundcloud, Arbor.js/halfviz, Bootstrap and jQuery.</span>
-        <button type="button" class="btn btn-primary" data-dismiss="modal">Close</button>
-      </div>
-    </div><!-- /.modal-content -->
-  </div><!-- /.modal-dialog -->
-</div><!-- /.modal -->
+    <div class="inDashboard" style="float:right">  
+      <!-- Button trigger modal -->
+      <button class="btn btn-primary help"  data-container="body" data-backdrop="false" data-toggle="modal" data-target="#myModal">
+        About
+      </button>
+    </div>
+    <!-- Modal -->
+    <div class="modal fade" id="myModal" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
+      <div class="modal-dialog">
+        <div class="modal-content">
+          <div class="modal-header">
+            <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
+            <h4 class="modal-title" id="myModalLabel">About the Soundcloud Explorer</h4>
+          </div>
+          <div class="modal-body">
+            <p>Created as an interactive tool to discover fresh sounds and new people to follow on Soundcloud.</p>
+            <p>Play around with the settings in the dashboard on your right to explore the sounds and music-lovers around you.</p>
+            <p><a href="mailto:x@pfalke.com" target="_blank">Let me know what you think!</a></p>
+            <p>- Philipp von Falkenhausen</p>
+          </div>
+          <div class="modal-footer">
+            <span style="float:left;">Thanks to Soundcloud, Arbor.js/halfviz, Bootstrap and jQuery.</span>
+            <button type="button" class="btn btn-primary" data-dismiss="modal">Close</button>
+          </div>
+        </div><!-- /.modal-content -->
+      </div><!-- /.modal-dialog -->
+    </div><!-- /.modal -->
 
 
 
