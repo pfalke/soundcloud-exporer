@@ -15,7 +15,7 @@ from google.appengine.api import urlfetch
 
 
 SC_BASE_URL = "https://api.soundcloud.com/users/"
-SOUNDCLOUD_CLIENT_ID = 'f90fa65cc94d868d957c0b529c5ecc3d'
+SOUNDCLOUD_CLIENT_ID = '81d9704f45e2b1d224e791d20eb76d2f'
 SOUNDCLOUD_CLIENT_SECRET = '4d33c7d194a23e781f184fb2418badae'
 
 
@@ -185,20 +185,22 @@ class SignRequestHandler(webapp2.RequestHandler):
     def post(self):
         self.response.headers.add_header("Access-Control-Allow-Origin", "*")
         self.response.headers.add_header("Content-Type", "application/json")
-        SOUNDCLOUD_OAUTH_REDIRECT_URL = self.request.get('SOUNDCLOUD_OAUTH_REDIRECT_URL')
 
-        if 'localhost' in SOUNDCLOUD_OAUTH_REDIRECT_URL:
-            SOUNDCLOUD_CLIENT_ID = 'f90fa65cc94d868d957c0b529c5ecc3d'
-            SOUNDCLOUD_CLIENT_SECRET = '9a7b216fc0874d85e1f9193f572146ac'
-
+        redirect_uri = self.request.get('SOUNDCLOUD_OAUTH_REDIRECT_URL')
+        client_id = SOUNDCLOUD_CLIENT_ID
+        client_secret = SOUNDCLOUD_CLIENT_SECRET
+        logging.info(redirect_uri)
+        if 'localhost' in redirect_uri:
+            client_id = 'f90fa65cc94d868d957c0b529c5ecc3d'
+            client_secret = '9a7b216fc0874d85e1f9193f572146ac'
 
         # request acess token from soundcloud
         form_fields = {
             "code": self.request.get('code'),
             "grant_type": "authorization_code",
-            'client_id': SOUNDCLOUD_CLIENT_ID,
-            'client_secret': SOUNDCLOUD_CLIENT_SECRET,
-            'redirect_uri': SOUNDCLOUD_OAUTH_REDIRECT_URL,
+            'client_id': client_id,
+            'client_secret': client_secret,
+            'redirect_uri': redirect_uri,
         }
         form_data = urllib.urlencode(form_fields)
         result = urlfetch.fetch(url='https://api.soundcloud.com/oauth2/token',
