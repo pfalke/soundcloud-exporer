@@ -472,32 +472,41 @@ $(document).ready(function() {
 
 			$.each(batches, function(i, batch) {
 				unfinishedRequests +=1
-				$.post(url, {
+				var data = {
 					'orders' : JSON.stringify(batch),
-					'quicks': 'x' // parameter "quick": for local testing, backend only does few requests
-				}).done(function(resp) {
-					// combine received data with data from cache
-					dataLoaded = mergeReceivedData(dataLoaded, resp)
-					unfinishedRequests -=1
-					if (unfinishedRequests)
-						{return}
-					if (logging.calls) {
-						var then = new Date()
-						console.log('took ' + (then-now) + 'ms to get data')
-					}
-					processData(dataLoaded, dataType, degree)
-				}).fail(function(jqXHR, stats, err) {
+					'quicks': 'x' // parameter "quick": for local testing, backend only does <5 requests
+				}
+				var success = function ajaxSucess(resp) {
+						// combine received data with data from cache
+						dataLoaded = mergeReceivedData(dataLoaded, resp)
+						unfinishedRequests -=1
+						if (unfinishedRequests)
+							{return}
+						if (logging.calls) {
+							var then = new Date()
+							console.log('took ' + (then-now) + 'ms to get data')
+						}
+						processData(dataLoaded, dataType, degree)
+				}
+				var error = function ajaxError(jqXHR, stats, err) {
 					console.log(jqXHR.responseText)
 					unfinishedRequests -=1
 					if (!unfinishedRequests) {
 						processData(dataLoaded, dataType, degree)
 					}
-				})
+				}
+				$.ajax({
+					type: "POST",
+					url: url,
+					data: data,
+					success: success,
+					dataType: 'json',
+					error: error
+				});
 			})
 		}
 
-		function mergeReceivedData(dataLoaded, resp) {
-			var recData = JSON.parse(resp)
+		function mergeReceivedData(dataLoaded, recData) {
 			dataLoaded.kinds = $.extend({}, dataLoaded.kinds, recData.kinds)
 			dataLoaded.connections = $.extend({}, dataLoaded.connections, recData.connections)
 			return dataLoaded
@@ -716,18 +725,15 @@ $(document).ready(function() {
 		if (!localStorage.accessTokenSC) { // user not logged in
 			$('#oauthButton').show()
 			$('#goToOAuthUserButton').hide()
-			console.log('1')
 		} else if (localStorage.oauth_username && rootUser.userData.username != localStorage.oauth_username) {
 			// user logging in and browsing someone else's account
 			$('#oauthButton').hide()
 			$('#goToOAuthUserButton').attr('user_id',localStorage.oauth_user_id).show()
 			.find('button').text('Back to ' + localStorage.oauth_username)
-			console.log('2')
 
 		} else { // user logged in and exploring own account
 			$('#oauthButton').hide()
 			$('#goToOAuthUserButton').hide()
-			console.log('3')
 		}
 	}
 
