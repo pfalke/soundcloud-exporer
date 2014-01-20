@@ -1,5 +1,4 @@
 import webapp2
-from google.appengine.ext import webapp
 from google.appengine.ext import ndb
 from google.appengine.api import users
 
@@ -36,7 +35,7 @@ class Log(ndb.Model):
     sc_avatar_url = ndb.StringProperty(default='')
     sc_country = ndb.StringProperty(default='')
 
-class LogHandler(webapp.RequestHandler):
+class LogHandler(webapp2.RequestHandler):
     def post(self):
         if users.is_current_user_admin():
             logging.info("visit from admin - not loggin' this!")
