@@ -66,52 +66,68 @@ class ShowStats(webapp2.RequestHandler):
         self.response.write(template.render(templ_val))
 
 
-def makeRequests(request):
-    orders = json.loads(request.get('orders'))
-
-    # parse options
-    timeout=3 if not 'timeout' in request.arguments() else int(request.get('timeout'))
-
-    req_counter = 0
-    reqs = {}
-    # for each user, get whatever is requested
-    for (user_id, user_data) in orders.iteritems():
-        # speedy mode for development
-        if 'quick' in request.arguments() and req_counter >= 5:
-            break # make only 5 reqs, for loacl testing
-        if req_counter >= 500:
-            logging.info('skipping remaining requests')
-            break
-        reqs[user_id] = {}
-        # user_data is list of data_types in the SC API
-        for data_type in user_data:
-            # fire requests to SC API
-            rpc = urlfetch.create_rpc(deadline=timeout)
-            url = SC_BASE_URL + user_id + '/' + data_type + '.json?'
-            if 'oauth_token' in request.arguments():
-                url += 'oauth_token=' + request.get('oauth_token') + '&'
-            else:
-                url += 'client_id=' + SOUNDCLOUD_CLIENT_ID + '&'
-            if 'limit' in request.arguments():
-                url += 'limit=' + str(request.get('limit'))
-            if req_counter % 10 == 0:
-                logging.info(url)
-            urlfetch.make_fetch_call(rpc, url)
-            reqs[user_id][data_type] = rpc
-            # bump counter
-            req_counter +=1
-    logging.info('%s reqs out' % req_counter)
-    return reqs
-
-
 class DataHandler(webapp2.RequestHandler):
-    def post(self):
-        self.response.headers.add_header("Access-Control-Allow-Origin", "*")
-        self.response.headers.add_header("Content-Type", "application/json")
-        self.response.headers.add_header("Access-Control-Allow-Headers", "x-requested-with")
+    def makeRequests(self):
+        orders = json.loads(self.request.get('orders'))
 
-        reqs = makeRequests(self.request)
+        # parse options
+        timeout=3 
+        if 'timeout' in self.request.arguments():
+            timeout = int(self.request.get('timeout'))
 
+        req_counter = 0
+        reqs = {}
+        # for each user, get whatever is requested
+        for (user_id, user_data) in orders.iteritems():
+            # speedy mode for development
+            if 'quick' in self.request.arguments() and req_counter >= 5:
+                break # make only 5 reqs, for loacl testing
+            if req_counter >= 500:
+                logging.info('skipping remaining requests')
+                break
+            reqs[user_id] = {}
+            # user_data is list of data_types in the SC API
+            for data_type in user_data:
+                # fire requests to SC API
+                rpc = urlfetch.create_rpc(deadline=timeout)
+                url = SC_BASE_URL + user_id + '/' + data_type + '.json?'
+                if 'oauth_token' in self.request.arguments():
+                    url += 'oauth_token=' + self.request.get('oauth_token') + '&'
+                else:
+                    url += 'client_id=' + SOUNDCLOUD_CLIENT_ID + '&'
+                if 'limit' in self.request.arguments():
+                    url += 'limit=' + str(self.request.get('limit'))
+                if req_counter % 10 == 0:
+                    logging.info(url)
+                urlfetch.make_fetch_call(rpc, url)
+                reqs[user_id][data_type] = rpc
+                # bump counter
+                req_counter +=1
+        logging.info('%s reqs out' % req_counter)
+        return reqs
+
+    def extractRelevantData(self,entity, data_type):
+        # Soundcloud API serves much more data than relevant
+        # truncate to minimize load time
+        relevant_data = {}
+        relevant_keys = [ # if entity is a sound
+            'id', 'created_at', 'permalink_url', 'artwork_url', 'title'
+        ]
+        if data_type == 'followings': # entity is a user
+            relevant_keys = [
+                'id', 'avatar_url', 'followings_count', 'full_name',
+                'permalink', 'permalink_url', 'playlist_count', 
+                'track_count', 'username'
+            ]
+        try:
+            for item in relevant_keys:
+                relevant_data[item] = entity[item]
+        except Exception, e:
+            logging.error('passing: %s' % e)
+            logging.error(entity)
+        return relevant_data
+
+    def extractFromApiCalls(self,reqs):
         # consolidate received sounds/users:
         # store relevant data for each and associate with original user
         kinds = {}
@@ -142,27 +158,22 @@ class DataHandler(webapp2.RequestHandler):
                     for pl in playlists:
                         dataList += pl['tracks']
 
-                for kind in dataList:
-                    if kind['id'] not in kinds:
-                        try:
-                            # extract the data that is relevant for us
-                            relevant_keys = [ # if kind is a sound
-                                'id', 'created_at', 'permalink_url', 'artwork_url', 'title'
-                            ]
-                            if data_type == 'followings': # kind is a user
-                                relevant_keys = [
-                                    'id', 'avatar_url', 'followings_count', 'full_name',
-                                    'permalink', 'permalink_url', 'playlist_count', 
-                                    'track_count', 'username'
-                                ]
-                            kinds[kind['id']] = {}
-                            for item in (relevant_keys):
-                                kinds[kind['id']][item] = kind[item]
-                        except Exception, e:
-                            logging.error('passing: %s' % e)
-                            logging.error(kind)
+                for entity in dataList:
+                    if entity['id'] not in kinds:
+                        kinds[entity['id']] = self.extractRelevantData(entity, data_type)
                     # associate with user
-                    connections[user_id].append(kind['id'])
+                    connections[user_id].append(entity['id'])
+        return (kinds, connections)
+
+    def post(self):
+        self.response.headers.add_header("Access-Control-Allow-Origin", "*")
+        self.response.headers.add_header("Content-Type", "application/json")
+        self.response.headers.add_header("Access-Control-Allow-Headers", "x-requested-with")
+
+        requests = self.makeRequests()
+
+        kinds, connections = self.extractFromApiCalls(requests)
+
         logging.info('responses parsed, write JSON')
         self.response.write(json.dumps({
             'kinds': kinds,

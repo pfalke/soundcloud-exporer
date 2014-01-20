@@ -24,7 +24,6 @@ $(document).ready(function() {
 
 
 
-
 	// CREATE GRAPH OUTPUT
 	var minConnectedUsers = 8 // how many connected users a sound needs to have to be relevant/displayed
 	var minRelevantSounds = 3 // how many relevant sounds a user needs to be connected to to be displayed
@@ -478,7 +477,7 @@ $(document).ready(function() {
 				}
 				if (localStorage.accessTokenSC)
 					{data['oauth_token'] = localStorage.accessTokenSC}
-				if (BACKEND_URL.indexOf('appspot') == -1)
+				if (BACKEND_URL.indexOf('appspot') == -1 && location.href.indexOf('appspot') == -1)
 					{data['quick'] = 'x'} // parameter "quick": for local testing, backend only does <5 requests
 				var success = function ajaxSucess(resp) {
 						// combine received data with data from cache
