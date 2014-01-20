@@ -104,65 +104,6 @@ def makeRequests(request):
     return reqs
 
 
-class SoundsHandler(webapp2.RequestHandler):
-    def post(self):
-        self.response.headers.add_header("Access-Control-Allow-Origin", "*")
-        self.response.headers.add_header("Content-Type", "application/json")
-        self.response.headers.add_header("Access-Control-Allow-Headers", "x-requested-with")
-
-        reqs = makeRequests(self.request)
-
-        # consolidate received sounds:
-        # store relevant data for each song and associate songs with users
-        sounds = {}
-        connectedSounds = {}
-
-        for (user_id,req_dict) in reqs.iteritems():
-            connectedSounds[user_id] = []
-            for (data_type, rpc) in req_dict.iteritems():
-                try:
-                    result = rpc.get_result()
-                except urlfetch.DownloadError, e: # Request timed out or failed.
-                    logging.info('error getting %s for user %s: %s' %
-                        (data_type,user_id, str(e)))
-                    continue
-                except apiproxy_errors.OverQuotaError, message:
-                    logging.error(message)
-                    self.error(500)
-                    self.response.write('Over quota. Please wait a few minutes and try again')
-                    return
-                if result.status_code != 200: continue
-                soundList = json.loads(result.content)
-                # concatenate playlists into a list of sounds
-                if data_type == 'playlists':
-                    playlists = soundList
-                    soundList = []
-                    for pl in playlists:
-                        soundList += pl['tracks']
-
-                for soundData in soundList:
-                    if soundData['id'] not in sounds:
-                        try:
-                            sounds[soundData['id']] = { # data relevant for us
-                                'id': soundData['id'],
-                                'created_at': soundData['created_at'],
-                                'permalink_url': soundData['permalink_url'],
-                                'artwork_url': soundData['artwork_url'],
-                                'title': soundData['title']
-                            }
-                        except KeyError, e:
-                            logging.info('passing: %s' % e)
-                            logging.info(soundData)
-                    # associate with user
-                    connectedSounds[user_id].append(soundData['id'])
-        logging.info('responses parsed, write JSON')
-        self.response.write(json.dumps({
-            'kinds': sounds,
-            'connections': connectedSounds,
-            }))
-        logging.info('done')
-
-
 class DataHandler(webapp2.RequestHandler):
     def post(self):
         self.response.headers.add_header("Access-Control-Allow-Origin", "*")
@@ -190,7 +131,9 @@ class DataHandler(webapp2.RequestHandler):
                     self.error(500)
                     self.response.write('Over quota. Please wait a few minutes and try again')
                     return
-                if result.status_code != 200: continue
+                if result.status_code != 200:
+                    logging.error(result.content)
+                    continue
                 dataList = json.loads(result.content)
                 # concatenate playlists into a list of sounds
                 if data_type == 'playlists':
@@ -235,61 +178,6 @@ class DataHandler(webapp2.RequestHandler):
             'connections': connections,
             }))
         logging.info('done')
-
-
-class FollowingsHandler(webapp2.RequestHandler):
-    def post(self):
-        self.response.headers.add_header("Access-Control-Allow-Origin", "*")
-        self.response.headers.add_header("Content-Type", "application/json")
-        self.response.headers.add_header("Access-Control-Allow-Headers", "x-requested-with")
-
-        reqs = makeRequests(self.request)
-
-        # consolidate received users:
-        # store relevant data for each users and associate followings with users
-        users = {}
-        followings = {}
-
-        for (user_id,req_dict) in reqs.iteritems():
-            followings[user_id] = []
-            for (data_type, rpc) in req_dict.iteritems():
-                try:
-                    result = rpc.get_result()
-                except urlfetch.DownloadError, e:
-                    # Request timed out or failed.
-                    logging.info('error getting %s for user %s: %s' %
-                        (data_type,user_id, str(e)))
-                    continue
-                except apiproxy_errors.OverQuotaError, message:
-                    logging.error(message)
-                    logging.error('exiting')
-                    self.error(500)
-                    self.response.write('Over quota. Please wait a few minutes and try again')
-                    return
-                if result.status_code != 200: continue
-                followingList = json.loads(result.content)
-                for userData in followingList:
-                    if userData['id'] not in users:
-                        try:
-                            users[userData['id']] = { # data relevant for us
-                                'id': userData['id'],
-                                'avatar_url': userData['avatar_url'],
-                                'followings_count': userData['followings_count'],
-                                'full_name': userData['full_name'],
-                                'permalink': userData['permalink'],
-                                'permalink_url': userData['permalink_url'],
-                                'playlist_count': userData['playlist_count'],
-                                'track_count': userData['track_count'],
-                                'username': userData['username'],
-                            }
-                        except KeyError, e:
-                            logging.error('passing: %s' % e)
-                            logging.info(userData)
-                    followings[user_id].append(userData['id']) # associate with user
-        self.response.write(json.dumps({
-            'kinds': users,
-            'connections': followings
-            }))
 
 
 class SignRequestHandler(webapp2.RequestHandler):
