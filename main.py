@@ -10,12 +10,16 @@ import jinja2
 import logging
 import os
 import json
+import urllib
 
 from google.appengine.api import urlfetch
 
 
 SC_BASE_URL = "https://api.soundcloud.com/users/"
-SC_URL_END = '.json?client_id=f90fa65cc94d868d957c0b529c5ecc3d&limit=50'
+SOUNDCLOUD_CLIENT_ID = 'f90fa65cc94d868d957c0b529c5ecc3d'
+SOUNDCLOUD_CLIENT_SECRET = '4d33c7d194a23e781f184fb2418badae'
+
+
 
 JINJA_ENVIRONMENT = jinja2.Environment(
     loader=jinja2.FileSystemLoader(os.path.dirname(__file__)),
@@ -62,14 +66,19 @@ class ShowStats(webapp2.RequestHandler):
         self.response.write(template.render(templ_val))
 
 
-def makeRequests(orders, quick=False):
+def makeRequests(request):
+    orders = json.loads(request.get('orders'))
+
+    # parse options
+    timeout=3 if not 'timeout' in request.arguments() else int(request.get('timeout'))
+
     req_counter = 0
     reqs = {}
     # for each user, get whatever is requested
     for (user_id, user_data) in orders.iteritems():
         # speedy mode for development
-        if quick and req_counter >= 5:
-            break
+        if 'quick' in request.arguments() and req_counter >= 5:
+            break # make only 5 reqs, for loacl testing
         if req_counter >= 500:
             logging.info('skipping remaining requests')
             break
@@ -77,9 +86,17 @@ def makeRequests(orders, quick=False):
         # user_data is list of data_types in the SC API
         for data_type in user_data:
             # fire requests to SC API
-            rpc = urlfetch.create_rpc(deadline=3)
-            urlfetch.make_fetch_call(
-                rpc, SC_BASE_URL + user_id + '/' + data_type + SC_URL_END)
+            rpc = urlfetch.create_rpc(deadline=timeout)
+            url = SC_BASE_URL + user_id + '/' + data_type + '.json?'
+            if 'oauth_token' in request.arguments():
+                url += 'oauth_token=' + request.get('oauth_token') + '&'
+            else:
+                url += 'client_id=' + SOUNDCLOUD_CLIENT_ID + '&'
+            if 'limit' in request.arguments():
+                url += 'limit=' + str(request.get('limit'))
+            if req_counter % 10 == 0:
+                logging.info(url)
+            urlfetch.make_fetch_call(rpc, url)
             reqs[user_id][data_type] = rpc
             # bump counter
             req_counter +=1
@@ -93,9 +110,7 @@ class SoundsHandler(webapp2.RequestHandler):
         self.response.headers.add_header("Content-Type", "application/json")
         self.response.headers.add_header("Access-Control-Allow-Headers", "x-requested-with")
 
-        orders = json.loads(self.request.get('orders'))
-        quick = 'quick' in self.request.arguments() # make only 5 reqs, for loacl testing
-        reqs = makeRequests(orders, quick)
+        reqs = makeRequests(self.request)
 
         # consolidate received sounds:
         # store relevant data for each song and associate songs with users
@@ -107,44 +122,117 @@ class SoundsHandler(webapp2.RequestHandler):
             for (data_type, rpc) in req_dict.iteritems():
                 try:
                     result = rpc.get_result()
-                    if result.status_code != 200: continue
-                    soundList = json.loads(result.content)
-                    # concatenate playlists into a list of sounds
-                    if data_type == 'playlists':
-                        playlists = soundList
-                        soundList = []
-                        for pl in playlists:
-                            soundList += pl['tracks']
-
-                    for soundData in soundList:
-                        if soundData['id'] not in sounds:
-                            try:
-                                sounds[soundData['id']] = { # data relevant for us
-                                    'id': soundData['id'],
-                                    'created_at': soundData['created_at'],
-                                    'permalink_url': soundData['permalink_url'],
-                                    'artwork_url': soundData['artwork_url'],
-                                    'title': soundData['title']
-                                }
-                            except KeyError, e:
-                                logging.info('passing: %s' % e)
-                                logging.info(soundData)
-                        # associate with user
-                        connectedSounds[user_id].append(soundData['id'])
-                except urlfetch.DownloadError, e:
-                    # Request timed out or failed.
+                except urlfetch.DownloadError, e: # Request timed out or failed.
                     logging.info('error getting %s for user %s: %s' %
                         (data_type,user_id, str(e)))
+                    continue
                 except apiproxy_errors.OverQuotaError, message:
                     logging.error(message)
-                    logging.error('exiting')
                     self.error(500)
                     self.response.write('Over quota. Please wait a few minutes and try again')
                     return
+                if result.status_code != 200: continue
+                soundList = json.loads(result.content)
+                # concatenate playlists into a list of sounds
+                if data_type == 'playlists':
+                    playlists = soundList
+                    soundList = []
+                    for pl in playlists:
+                        soundList += pl['tracks']
+
+                for soundData in soundList:
+                    if soundData['id'] not in sounds:
+                        try:
+                            sounds[soundData['id']] = { # data relevant for us
+                                'id': soundData['id'],
+                                'created_at': soundData['created_at'],
+                                'permalink_url': soundData['permalink_url'],
+                                'artwork_url': soundData['artwork_url'],
+                                'title': soundData['title']
+                            }
+                        except KeyError, e:
+                            logging.info('passing: %s' % e)
+                            logging.info(soundData)
+                    # associate with user
+                    connectedSounds[user_id].append(soundData['id'])
         logging.info('responses parsed, write JSON')
         self.response.write(json.dumps({
             'kinds': sounds,
             'connections': connectedSounds,
+            }))
+        logging.info('done')
+
+
+class DataHandler(webapp2.RequestHandler):
+    def post(self):
+        self.response.headers.add_header("Access-Control-Allow-Origin", "*")
+        self.response.headers.add_header("Content-Type", "application/json")
+        self.response.headers.add_header("Access-Control-Allow-Headers", "x-requested-with")
+
+        reqs = makeRequests(self.request)
+
+        # consolidate received sounds:
+        # store relevant data for each song and associate songs with users
+        kinds = {}
+        connections = {}
+
+        for (user_id,req_dict) in reqs.iteritems():
+            connections[user_id] = []
+            for (data_type, rpc) in req_dict.iteritems():
+                try:
+                    result = rpc.get_result()
+                except urlfetch.DownloadError, e: # Request timed out or failed.
+                    logging.info('error getting %s for user %s: %s' %
+                        (data_type,user_id, str(e)))
+                    continue
+                except apiproxy_errors.OverQuotaError, message:
+                    logging.error(message)
+                    self.error(500)
+                    self.response.write('Over quota. Please wait a few minutes and try again')
+                    return
+                if result.status_code != 200: continue
+                dataList = json.loads(result.content)
+                # concatenate playlists into a list of sounds
+                if data_type == 'playlists':
+                    playlists = dataList
+                    dataList = []
+                    for pl in playlists:
+                        dataList += pl['tracks']
+
+                for kind in dataList:
+                    if kind['id'] not in kinds:
+                        try:
+                            # extract the data that is relevant for us
+                            if data_type == 'followings':
+                                # kind is a user
+                                kinds[kind['id']] = {
+                                    'id': kind['id'],
+                                    'avatar_url': kind['avatar_url'],
+                                    'followings_count': kind['followings_count'],
+                                    'full_name': kind['full_name'],
+                                    'permalink': kind['permalink'],
+                                    'permalink_url': kind['permalink_url'],
+                                    'playlist_count': kind['playlist_count'],
+                                    'track_count': kind['track_count'],
+                                    'username': kind['username'],
+                                }
+                            else: # kind is a sound
+                                kinds[kind['id']] = {
+                                    'id': kind['id'],
+                                    'created_at': kind['created_at'],
+                                    'permalink_url': kind['permalink_url'],
+                                    'artwork_url': kind['artwork_url'],
+                                    'title': kind['title']
+                                }
+                        except Exception, e:
+                            logging.error('passing: %s' % e)
+                            logging.error(kind)
+                    # associate with user
+                    connections[user_id].append(kind['id'])
+        logging.info('responses parsed, write JSON')
+        self.response.write(json.dumps({
+            'kinds': kinds,
+            'connections': connections,
             }))
         logging.info('done')
 
@@ -155,9 +243,7 @@ class FollowingsHandler(webapp2.RequestHandler):
         self.response.headers.add_header("Content-Type", "application/json")
         self.response.headers.add_header("Access-Control-Allow-Headers", "x-requested-with")
 
-        orders = json.loads(self.request.get('orders'))
-        quick = 'quick' in self.request.arguments() # make only 5 reqs, for loacl testing
-        reqs = makeRequests(orders, quick)
+        reqs = makeRequests(self.request)
 
         # consolidate received users:
         # store relevant data for each users and associate followings with users
@@ -169,46 +255,77 @@ class FollowingsHandler(webapp2.RequestHandler):
             for (data_type, rpc) in req_dict.iteritems():
                 try:
                     result = rpc.get_result()
-                    if result.status_code != 200: continue
-                    followingList = json.loads(result.content)
-                    for userData in followingList:
-                        if userData['id'] not in users:
-                            try:
-                                users[userData['id']] = { # data relevant for us
-                                    'id': userData['id'],
-                                    'avatar_url': userData['avatar_url'],
-                                    'followings_count': userData['followings_count'],
-                                    'full_name': userData['full_name'],
-                                    'permalink': userData['permalink'],
-                                    'permalink_url': userData['permalink_url'],
-                                    'playlist_count': userData['playlist_count'],
-                                    'track_count': userData['track_count'],
-                                    'username': userData['username'],
-                                }
-                            except KeyError, e:
-                                logging.error('passing: %s' % e)
-                                logging.info(userData)
-                        followings[user_id].append(userData['id']) # associate with user
                 except urlfetch.DownloadError, e:
                     # Request timed out or failed.
                     logging.info('error getting %s for user %s: %s' %
                         (data_type,user_id, str(e)))
+                    continue
                 except apiproxy_errors.OverQuotaError, message:
                     logging.error(message)
                     logging.error('exiting')
                     self.error(500)
                     self.response.write('Over quota. Please wait a few minutes and try again')
                     return
+                if result.status_code != 200: continue
+                followingList = json.loads(result.content)
+                for userData in followingList:
+                    if userData['id'] not in users:
+                        try:
+                            users[userData['id']] = { # data relevant for us
+                                'id': userData['id'],
+                                'avatar_url': userData['avatar_url'],
+                                'followings_count': userData['followings_count'],
+                                'full_name': userData['full_name'],
+                                'permalink': userData['permalink'],
+                                'permalink_url': userData['permalink_url'],
+                                'playlist_count': userData['playlist_count'],
+                                'track_count': userData['track_count'],
+                                'username': userData['username'],
+                            }
+                        except KeyError, e:
+                            logging.error('passing: %s' % e)
+                            logging.info(userData)
+                    followings[user_id].append(userData['id']) # associate with user
         self.response.write(json.dumps({
             'kinds': users,
             'connections': followings
             }))
 
 
+class SignRequestHandler(webapp2.RequestHandler):
+    def post(self):
+        self.response.headers.add_header("Access-Control-Allow-Origin", "*")
+        self.response.headers.add_header("Content-Type", "application/json")
+        SOUNDCLOUD_OAUTH_REDIRECT_URL = self.request.get('SOUNDCLOUD_OAUTH_REDIRECT_URL')
+
+        if 'localhost' in SOUNDCLOUD_OAUTH_REDIRECT_URL:
+            SOUNDCLOUD_CLIENT_ID = 'f90fa65cc94d868d957c0b529c5ecc3d'
+            SOUNDCLOUD_CLIENT_SECRET = '9a7b216fc0874d85e1f9193f572146ac'
+
+
+        # request acess token from soundcloud
+        form_fields = {
+            "code": self.request.get('code'),
+            "grant_type": "authorization_code",
+            'client_id': SOUNDCLOUD_CLIENT_ID,
+            'client_secret': SOUNDCLOUD_CLIENT_SECRET,
+            'redirect_uri': SOUNDCLOUD_OAUTH_REDIRECT_URL,
+        }
+        form_data = urllib.urlencode(form_fields)
+        result = urlfetch.fetch(url='https://api.soundcloud.com/oauth2/token',
+            payload=form_data,
+            method=urlfetch.POST,
+            headers={'Content-Type': 'application/x-www-form-urlencoded'})
+        if result.status_code == 200:
+            self.response.write(result.content)
+            return
+        logging.error(result.content)
+        self.error(result.status_code)
 
 app = webapp2.WSGIApplication([
-       webapp2.Route(r'/log', handler=LogHandler, name='log'),
-       webapp2.Route(r'/showstats', handler=ShowStats, name='showstats'),
-       webapp2.Route(r'/getSounds', handler=SoundsHandler, name='getSounds'),
-       webapp2.Route(r'/getFollowings', handler=FollowingsHandler, name='getFollowings'),
+       webapp2.Route(r'/showstats', handler=ShowStats, name='showstats'), # Admin only
+       webapp2.Route(r'/s/log', handler=LogHandler, name='log'),
+       webapp2.Route(r'/s/getSounds', handler=DataHandler, name='getSounds'),
+       webapp2.Route(r'/s/getFollowings', handler=DataHandler, name='getFollowings'),
+       webapp2.Route(r'/s/signRequest', handler=SignRequestHandler, name='signRequest'),
        ],debug=True)

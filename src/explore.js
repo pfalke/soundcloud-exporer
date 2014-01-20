@@ -10,17 +10,16 @@ $(document).ready(function() {
 	// parameters for soundcloud
 	SOUNDCLOUD_CLIENT_ID = '81d9704f45e2b1d224e791d20eb76d2f'
 	SOUNDCLOUD_OAUTH_REDIRECT_URL = 'https://soundcloud-explore.appspot.com/'
-	SOUNDCLOUD_CLIENT_SECRET = '4d33c7d194a23e781f184fb2418badae'
+	var onLocalhost = false
 	// parameters for testing on local machine
 	if (document.domain.indexOf('localhost') != -1) {
+		onLocalhost = true
 		SOUNDCLOUD_CLIENT_ID = 'f90fa65cc94d868d957c0b529c5ecc3d'
 		SOUNDCLOUD_OAUTH_REDIRECT_URL = 'http://localhost:16081/'
-		SOUNDCLOUD_CLIENT_SECRET = '9a7b216fc0874d85e1f9193f572146ac'
 	}
 
-	// var dataUrl = 'https://soundcloud-explore.appspot.com/getData'
-	var BACKEND_URL = 'https://soundcloud-explore.appspot.com'
-	// var dataUrl = '/getData'
+	var BACKEND_URL = '/s'
+	// var BACKEND_URL = 'https://soundcloud-explore.appspot.com/s'
 
 
 
@@ -474,8 +473,13 @@ $(document).ready(function() {
 				unfinishedRequests +=1
 				var data = {
 					'orders' : JSON.stringify(batch),
-					'quicks': 'x' // parameter "quick": for local testing, backend only does <5 requests
+					'limit': '50', // results per API call
+					'timeout': degree > 0 ? '3' : '8' // root user's data is more important
 				}
+				if (localStorage.accessTokenSC)
+					{data['oauth_token'] = localStorage.accessTokenSC}
+				if (BACKEND_URL.indexOf('appspot') == -1)
+					{data['quick'] = 'x'} // parameter "quick": for local testing, backend only does <5 requests
 				var success = function ajaxSucess(resp) {
 						// combine received data with data from cache
 						dataLoaded = mergeReceivedData(dataLoaded, resp)
@@ -626,15 +630,29 @@ $(document).ready(function() {
 		}
 	}
 
-
-
-
-
-
-
+	function getScAccessToken(oauthCode) {
+		$.post('/s/signRequest', {
+			'code': oauthCode,
+			'SOUNDCLOUD_OAUTH_REDIRECT_URL': SOUNDCLOUD_OAUTH_REDIRECT_URL
+		}).fail(function reqFail(data, status, jqXHR) {console.log(data)})
+		.done(function reqDone(data, status, jqXHR) {
+			// store token
+			if (typeof(data) == 'string')
+				{data = JSON.parse(data)
+				console.log('had to parse')
+				}
+			if (typeof(data) == 'object' && 'access_token' in data) {
+				localStorage.accessTokenSC = data['access_token']
+				startWithOAuthUser()
+			} else {console.log(data)}
+		})
+		// remove code from displayed url
+		var url = location.protocol+'//'+location.hostname+
+			(location.port ? ':'+location.port: '')+'/'
+		history.pushState({id: 'oauth_code'}, '', url);
+	}
 
 	// USER INTERACTIONS etc
-
 	function startWithOAuthUser() {
 		// retrive accessToken from localStorage
 		var accessTokenSC = localStorage.accessTokenSC
@@ -645,24 +663,8 @@ $(document).ready(function() {
 			startWithId('me', accessTokenSC)
 		} else if (!accessTokenSC && oauthCode) {
 			// get accessToken, then restart
-			$.post('https://api.soundcloud.com/oauth2/token', {
-				'client_id': SOUNDCLOUD_CLIENT_ID,
-				'client_secret': SOUNDCLOUD_CLIENT_SECRET,
-				'redirect_uri': SOUNDCLOUD_OAUTH_REDIRECT_URL,
-				'grant_type': 'authorization_code',
-				'code': oauthCode
-			}).fail(function reqFail(data, status, jqXHR) {console.log(data)})
-			.done(function reqDone(data, status, jqXHR) {
-				// store token and start again
-				if (typeof(data) == 'object' && 'access_token' in data) {
-					localStorage.accessTokenSC = data['access_token']
-					startWithOAuthUser()
-				} else {console.log(data)}
-			})
-			// remove code from displayed url
-			var url = location.protocol+'//'+location.hostname+
-				(location.port ? ':'+location.port: '')+'/'
-			history.pushState({id: 'oauth_code'}, '', url);
+			getScAccessToken(oauthCode)
+			return
 		} else {
 			// splashpage prompt user to authorize on SC
 			location.href = '/splashpage'
