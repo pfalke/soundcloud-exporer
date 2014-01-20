@@ -112,8 +112,8 @@ class DataHandler(webapp2.RequestHandler):
 
         reqs = makeRequests(self.request)
 
-        # consolidate received sounds:
-        # store relevant data for each song and associate songs with users
+        # consolidate received sounds/users:
+        # store relevant data for each and associate with original user
         kinds = {}
         connections = {}
 
@@ -146,27 +146,18 @@ class DataHandler(webapp2.RequestHandler):
                     if kind['id'] not in kinds:
                         try:
                             # extract the data that is relevant for us
-                            if data_type == 'followings':
-                                # kind is a user
-                                kinds[kind['id']] = {
-                                    'id': kind['id'],
-                                    'avatar_url': kind['avatar_url'],
-                                    'followings_count': kind['followings_count'],
-                                    'full_name': kind['full_name'],
-                                    'permalink': kind['permalink'],
-                                    'permalink_url': kind['permalink_url'],
-                                    'playlist_count': kind['playlist_count'],
-                                    'track_count': kind['track_count'],
-                                    'username': kind['username'],
-                                }
-                            else: # kind is a sound
-                                kinds[kind['id']] = {
-                                    'id': kind['id'],
-                                    'created_at': kind['created_at'],
-                                    'permalink_url': kind['permalink_url'],
-                                    'artwork_url': kind['artwork_url'],
-                                    'title': kind['title']
-                                }
+                            relevant_keys = [ # if kind is a sound
+                                'id', 'created_at', 'permalink_url', 'artwork_url', 'title'
+                            ]
+                            if data_type == 'followings': # kind is a user
+                                relevant_keys = [
+                                    'id', 'avatar_url', 'followings_count', 'full_name',
+                                    'permalink', 'permalink_url', 'playlist_count', 
+                                    'track_count', 'username'
+                                ]
+                            kinds[kind['id']] = {}
+                            for item in (relevant_keys):
+                                kinds[kind['id']][item] = kind[item]
                         except Exception, e:
                             logging.error('passing: %s' % e)
                             logging.error(kind)
