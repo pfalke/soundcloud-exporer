@@ -459,12 +459,12 @@ $(document).ready(function() {
 					'limit': '50', // results per API call
 					'timeout': degree > 0 ? '3' : '8' // root user's data is more important
 				}
-				if (localStorage.accessTokenSC)
+				if (localStorage.accessTokenSC) // API calls with token may return private data
 					{data['oauth_token'] = localStorage.accessTokenSC}
 				if (BACKEND_URL.indexOf('appspot') == -1 && location.href.indexOf('appspot') == -1)
 					{data['quick'] = 'x'} // parameter "quick": for local testing, backend only does <5 requests
 				var success = function ajaxSucess(resp) {
-						// combine received data with data from cache
+						// combine with data from other API calls
 						dataLoaded = mergeReceivedData(dataLoaded, resp)
 						unfinishedRequests -=1
 						if (unfinishedRequests)
@@ -532,7 +532,6 @@ $(document).ready(function() {
 				determineGraphNodes()
 			}
 
-			// rewrite graph unless we only have data for root user
 			if (degree > 0) {
 				$('#btnDegree'+degree).removeClass('loading')
 			}
@@ -583,13 +582,11 @@ $(document).ready(function() {
 			loadDataAtMaxDegree('sounds' ,degree+1)
 		}
 		
-		// kick of retrieving data
+		// kick off retrieving data
 		loadDataAtMaxDegree('sounds', 0)
-
 	}
 
 	function checkCoolSounds() {
-
 		// mark root users sounds
 		$.each(users[rootID].sounds, function(id, sound) {
 			sound.isCool = true

@@ -100,7 +100,7 @@ class DataHandler(webapp2.RequestHandler):
                     logging.info(url) # log a few urls for error hunting
                 urlfetch.make_fetch_call(rpc, url)
                 reqs[user_id][data_type] = rpc
-                req_counter +=1 # bump counter
+                req_counter +=1  # bump counter
         logging.info('%s reqs out' % req_counter)
         return reqs
 
