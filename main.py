@@ -97,11 +97,10 @@ class DataHandler(webapp2.RequestHandler):
                 if 'limit' in self.request.arguments():
                     url += 'limit=' + str(self.request.get('limit'))
                 if req_counter % 10 == 0:
-                    logging.info(url)
+                    logging.info(url) # log a few urls for error hunting
                 urlfetch.make_fetch_call(rpc, url)
                 reqs[user_id][data_type] = rpc
-                # bump counter
-                req_counter +=1
+                req_counter +=1 # bump counter
         logging.info('%s reqs out' % req_counter)
         return reqs
 

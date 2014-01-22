@@ -10,24 +10,19 @@ $(document).ready(function() {
 	// parameters for soundcloud
 	SOUNDCLOUD_CLIENT_ID = '81d9704f45e2b1d224e791d20eb76d2f'
 	SOUNDCLOUD_OAUTH_REDIRECT_URL = 'https://soundcloud-explore.appspot.com/'
-	var onLocalhost = false
 	// parameters for testing on local machine
 	if (document.domain.indexOf('localhost') != -1) {
-		onLocalhost = true
 		SOUNDCLOUD_CLIENT_ID = 'f90fa65cc94d868d957c0b529c5ecc3d'
 		SOUNDCLOUD_OAUTH_REDIRECT_URL = 'http://localhost:16081/'
 	}
 
-	var BACKEND_URL = '/s'
-	// var BACKEND_URL = 'https://soundcloud-explore.appspot.com/s'
+	// var BACKEND_URL = '/s'
+	var BACKEND_URL = 'https://soundcloud-explore.appspot.com/s'
 
 
 
 
 	// CREATE GRAPH OUTPUT
-	var minConnectedUsers = 8 // how many connected users a sound needs to have to be relevant/displayed
-	var minRelevantSounds = 3 // how many relevant sounds a user needs to be connected to to be displayed
-
 	// user choices
 	var degreeConsidered = 1 // selected by explorer: users up to this degree are considered
 	$('.degreeButton').click(function(el) {
@@ -226,21 +221,10 @@ $(document).ready(function() {
 	// returns list of sounds to be included in graph and dict giving how many of these sounds each user is connecteed to
 	var determineGraphNodes = function() {
 		var now = new Date()
-		// check how often each user appers - don't want users that appear only once
-		var soundsInGraph
-		var userCounts
-		var bumpUserCount = function(index, user) {
-			var id =user.userData.id
-			if (id in userCounts) {
-				userCounts[id] +=1
-			} else {
-				userCounts[id] = 1
-			}
-		}
 
 		var goodSounds = getGoodSounds()
 
-		// include the 5-15 sounds with the most connections into the graph
+		// include the 15 sounds with the most connections into the graph
 		// sort goodSounds by number of connections
 		goodSounds.sort(function(a, b) {return a['connectedUsers'].length - b['connectedUsers'].length})
 		goodSounds = goodSounds.slice(-15)
@@ -255,7 +239,7 @@ $(document).ready(function() {
 
 		var then = new Date()
 		if (logging.redraws)
-			{console.log('took ' + (then-now) + 'ms to determine graph')} //  with ' + soundsInGraph.length + ' sounds
+			{console.log('took ' + (then-now) + 'ms to determine graph')}
 	}
 
 
@@ -464,7 +448,7 @@ $(document).ready(function() {
 			// sometimes all data is already in memory, i.e. batches == []
 			// then, immediate start processing, no requests need to be made
 			if (!batches.length) {
-				console.log('skip')
+				console.log('nothing to load, skip call to server (' + dataType + ')')
 				processData(dataLoaded, dataType, degree)
 			}
 
