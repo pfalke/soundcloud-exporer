@@ -16,8 +16,8 @@ $(document).ready(function() {
 		SOUNDCLOUD_OAUTH_REDIRECT_URL = 'http://localhost:16081/'
 	}
 
-	var BACKEND_URL = '/s'
-	// var BACKEND_URL = 'https://soundcloud-explore.appspot.com/s'
+	// var BACKEND_URL = '/s'
+	var BACKEND_URL = 'https://soundcloud-explore.appspot.com/s'
 
 
 

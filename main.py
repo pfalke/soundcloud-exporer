@@ -117,12 +117,8 @@ class DataHandler(webapp2.RequestHandler):
                 'permalink', 'permalink_url', 'playlist_count', 
                 'track_count', 'username'
             ]
-        try:
-            for item in relevant_keys:
-                relevant_data[item] = entity[item]
-        except Exception, e:
-            logging.error('passing: %s' % e)
-            logging.error(entity)
+        for item in relevant_keys:
+            relevant_data[item] = entity[item]
         return relevant_data
 
     def extractFromApiCalls(self,reqs):
@@ -154,10 +150,14 @@ class DataHandler(webapp2.RequestHandler):
                     dataList = [sound for playlist in dataList for sound in playlist['tracks']]
 
                 for entity in dataList:
-                    if entity['id'] not in kinds:
-                        kinds[entity['id']] = self.extractRelevantData(entity, data_type)
-                    # associate with user
-                    connections[user_id].append(entity['id'])
+                    try:
+                        if entity['id'] not in kinds:
+                            kinds[entity['id']] = self.extractRelevantData(entity, data_type)
+                        # associate with user
+                        connections[user_id].append(entity['id'])
+                    except Exception, e:
+                        logging.error('skipping sound/user because of error: %s' % e)
+                        logging.error(entity)                    
         return (kinds, connections)
 
     def post(self):
