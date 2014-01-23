@@ -151,10 +151,7 @@ class DataHandler(webapp2.RequestHandler):
                 dataList = json.loads(result.content)
                 # concatenate playlists into a list of sounds
                 if data_type == 'playlists':
-                    playlists = dataList
-                    dataList = []
-                    for pl in playlists:
-                        dataList += pl['tracks']
+                    dataList = [sound for playlist in dataList for sound in playlist['tracks']]
 
                 for entity in dataList:
                     if entity['id'] not in kinds:

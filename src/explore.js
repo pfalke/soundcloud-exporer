@@ -16,8 +16,8 @@ $(document).ready(function() {
 		SOUNDCLOUD_OAUTH_REDIRECT_URL = 'http://localhost:16081/'
 	}
 
-	// var BACKEND_URL = '/s'
-	var BACKEND_URL = 'https://soundcloud-explore.appspot.com/s'
+	var BACKEND_URL = '/s'
+	// var BACKEND_URL = 'https://soundcloud-explore.appspot.com/s'
 
 
 
@@ -218,7 +218,8 @@ $(document).ready(function() {
 	}
 
 
-	// returns list of sounds to be included in graph and dict giving how many of these sounds each user is connecteed to
+	// returns list of sounds to be included in graph and
+	// dict giving how many of these sounds each user is connecteed to
 	var determineGraphNodes = function() {
 		var now = new Date()
 
@@ -505,7 +506,8 @@ $(document).ready(function() {
 			else if (dataType == 'connectedUsers') {storeConnection(dataLoaded, degree)}
 		}
 
-		// create Sound object for newly found songs, associate sounds with User objects, signal that sounds were loaded
+		// create Sound object for newly found songs, associate sounds with
+		// User objects, signal that sounds were loaded
 		function storeSound(dataLoaded, degree) {
 			var now = new Date()
 
@@ -549,7 +551,8 @@ $(document).ready(function() {
 			}
 		}
 
-		// create User object for newly found users, associate users amongst each other, signal that users were loaded
+		// create User object for newly found users, associate users amongst each other,
+		// signal that users were loaded
 		function storeConnection(dataLoaded, degree) {
 			var now = new Date()
 
