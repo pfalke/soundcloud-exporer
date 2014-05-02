@@ -37,6 +37,7 @@ class Log(ndb.Model):
 
 class LogHandler(webapp2.RequestHandler):
     def post(self):
+        logging.info(self.request.arguments())
         if users.is_current_user_admin():
             logging.info("visit from admin - not loggin' this!")
             return
