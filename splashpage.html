@@ -4,9 +4,9 @@
 <html lang="en">
 <head>
   <link rel="stylesheet" href="style/bootstrap.min.css" type="text/css" charset="utf-8">
-  <link href='http://fonts.googleapis.com/css?family=Source+Sans+Pro:400,700' rel='stylesheet' type='text/css'>
+  <link href='https://fonts.googleapis.com/css?family=Source+Sans+Pro:400,700' rel='stylesheet' type='text/css'>
   <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
-    <title>Soundcloud Pathfinder</title>
+    <title>Soundcloud Explorer</title>
 </head>
 <body style="background-color: rgb(248, 248, 248);
 background-image: url(../style/SCgraph.png);
@@ -26,14 +26,18 @@ padding: 50px;">
       <a id="button">
         <button class="btn btn-primary">Connect with Soundcloud
         </button>
+      </a><br>
+      <a href="/pfalke">
+        <button class="btn btn-mini" style="margin-top:20px;">Try with Philipp's account
+        </button>
       </a>
   </div>
 
 <script type="text/javascript">
-  SOUNDCLOUD_CLIENT_ID = '81d9704f45e2b1d224e791d20eb76d2f'
+  SOUNDCLOUD_CLIENT_ID = '7eb64bef7b9f650a6677ae6a2c2b32e3'
   SOUNDCLOUD_OAUTH_REDIRECT_URL = 'https://soundcloud-explore.appspot.com/'
   if (document.domain.indexOf('localhost') != -1) {
-    SOUNDCLOUD_CLIENT_ID = 'f90fa65cc94d868d957c0b529c5ecc3d'
+    SOUNDCLOUD_CLIENT_ID = '007702ed0fe9da4d2bc12d3a25ae7dcb'
     SOUNDCLOUD_OAUTH_REDIRECT_URL = 'http://localhost:16081/'
   }
   var url = "https://soundcloud.com/connect?response_type=code&scope=non-expiring"
@@ -43,6 +47,10 @@ padding: 50px;">
   var link = document.getElementById('button')
   link.href= url
 </script>
+
+
+  <script src="src/jquery-1.6.1.min.js"></script>
+  <script src='src/test.js'></script>
 
 </body>
 </html>

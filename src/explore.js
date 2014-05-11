@@ -3,33 +3,26 @@
 var logging = {
 	'calls': true,
 	'interactions': false,
-	'redraws': true,
+	'redraws': false,
 }
 
 $(document).ready(function() {
 	// parameters for soundcloud
-	SOUNDCLOUD_CLIENT_ID = '81d9704f45e2b1d224e791d20eb76d2f'
+	SOUNDCLOUD_CLIENT_ID = '7eb64bef7b9f650a6677ae6a2c2b32e3'
 	SOUNDCLOUD_OAUTH_REDIRECT_URL = 'https://soundcloud-explore.appspot.com/'
-	SOUNDCLOUD_CLIENT_SECRET = '4d33c7d194a23e781f184fb2418badae'
 	// parameters for testing on local machine
 	if (document.domain.indexOf('localhost') != -1) {
-		SOUNDCLOUD_CLIENT_ID = 'f90fa65cc94d868d957c0b529c5ecc3d'
+		SOUNDCLOUD_CLIENT_ID = '007702ed0fe9da4d2bc12d3a25ae7dcb'
 		SOUNDCLOUD_OAUTH_REDIRECT_URL = 'http://localhost:16081/'
-		SOUNDCLOUD_CLIENT_SECRET = '9a7b216fc0874d85e1f9193f572146ac'
 	}
 
-	// var dataUrl = 'https://soundcloud-explore.appspot.com/getData'
-	var BACKEND_URL = 'https://soundcloud-explore.appspot.com'
-	// var dataUrl = '/getData'
-
+	// var BACKEND_URL = '/s'
+	var BACKEND_URL = 'https://soundcloud-explore.appspot.com/s'
 
 
 
 
 	// CREATE GRAPH OUTPUT
-	var minConnectedUsers = 8 // how many connected users a sound needs to have to be relevant/displayed
-	var minRelevantSounds = 3 // how many relevant sounds a user needs to be connected to to be displayed
-
 	// user choices
 	var degreeConsidered = 1 // selected by explorer: users up to this degree are considered
 	$('.degreeButton').click(function(el) {
@@ -225,24 +218,14 @@ $(document).ready(function() {
 	}
 
 
-	// returns list of sounds to be included in graph and dict giving how many of these sounds each user is connecteed to
+	// returns list of sounds to be included in graph and
+	// dict giving how many of these sounds each user is connecteed to
 	var determineGraphNodes = function() {
 		var now = new Date()
-		// check how often each user appers - don't want users that appear only once
-		var soundsInGraph
-		var userCounts
-		var bumpUserCount = function(index, user) {
-			var id =user.userData.id
-			if (id in userCounts) {
-				userCounts[id] +=1
-			} else {
-				userCounts[id] = 1
-			}
-		}
 
 		var goodSounds = getGoodSounds()
 
-		// include the 5-15 sounds with the most connections into the graph
+		// include the 15 sounds with the most connections into the graph
 		// sort goodSounds by number of connections
 		goodSounds.sort(function(a, b) {return a['connectedUsers'].length - b['connectedUsers'].length})
 		goodSounds = goodSounds.slice(-15)
@@ -257,7 +240,7 @@ $(document).ready(function() {
 
 		var then = new Date()
 		if (logging.redraws)
-			{console.log('took ' + (then-now) + 'ms to determine graph')} //  with ' + soundsInGraph.length + ' sounds
+			{console.log('took ' + (then-now) + 'ms to determine graph')}
 	}
 
 
@@ -380,9 +363,9 @@ $(document).ready(function() {
 					// no request needs to be made if we know there is no data
 					// not sure how non-public favorites are handled, so make request anyway for small degrees
 					var skip = ((currDataType == 'playlists' && user.userData.playlist_count === 0) ||
-						(currDataType == 'favorites' && user.userData.public_favorites_count === 0 && degree>1) ||
-						(currDataType == 'tracks' && user.userData.track_count === 0) ||
-						(currDataType == 'followings' && user.userData.followings_count === 0))
+						(currDataType == 'favorites' && user.userData.public_favorites_count < 5 && degree>1) ||
+						(currDataType == 'tracks' && user.userData.track_count < 5) ||
+						(currDataType == 'followings' && user.userData.followings_count < 5))
 					if (skip) {
 						continue
 					}
@@ -410,46 +393,42 @@ $(document).ready(function() {
 			if (stop) {
 				return
 			}
-			var user, dataForUser
-			var idsToQuery = {}
-			var batches = [] // we request at most 200 objects from API at a time
-			var counterAPI = 0
+
+			var userCount = 0
 			var goodUsers = []
 			for (var userId in users) {
-				user = users[userId]
+				userCount +=1
+				var user = users[userId]
 				// check if degree OK and we have not queried this data for this user before
 				// a user at the higher degrees should have a few common likes with root user
-				var userGood = (!user.queried[dataType] && user.degree<=degree &&
-					user.numCoolSounds >= degree)
+				// users with too few followings are not worth an API call
+				// users with too many followings: cannot process all of them, data not meaningful
+				var userGood = (!user.queried.connectedUsers && user.degree<=degree &&
+					user.numCoolSounds >= degree*2 &&
+					((user.userData.followings_count > 3 && user.userData.followings_count<150) ||
+						degree === 0))
 				if (userGood) {
 					goodUsers.push(user)
 				}
 			}
+			console.log('there are ' + userCount + ' users stored now')
+			console.log(goodUsers.length + ' of them are eligible')
+
 			// we want to have the users with the most sounds in common with the root user
 			goodUsers.sort(function(a, b) {return a.numCoolSounds - b.numCoolSounds})
-			goodUsers = goodUsers.slice(-100)
-			console.log('user with least cool sounds that is considered has ' + goodUsers[0].numCoolSounds + ' cool sounds')
-			$.each(goodUsers, function(i, user) {
-				console.log(user.userData.username)
-			})
+			goodUsers = goodUsers.slice(-15)
+			if (goodUsers.length > 0)
+				{console.log('user with least cool sounds that is considered has ' +
+					goodUsers[0].numCoolSounds + ' cool sounds')}
+
+			var idsToQuery = {}
 			$.each(goodUsers, function(j, user) {
-				if (user.userData.followings_count > 0) {
-					idsToQuery[user.id] = ['followings']
-					counterAPI +=1
-				}
-
-				// requests are split in batches of ~50 to make load easier to handle for GAE
-				if (counterAPI>=50) {
-					batches.push(idsToQuery)
-					idsToQuery = {}
-					counterAPI = 0
-				}
+				idsToQuery[user.id] = ['followings']
+				console.log(user.numCoolSounds + ' has followings: ' + user.userData.followings_count +
+					', username: ' + user.userData.username)
 			})
 
-			if (counterAPI>0) {batches.push(idsToQuery)}
-			console.log(batches)
-
-			getData(batches, dataType, degree)
+			getData([idsToQuery], 'connectedUsers', degree)
 		}
 
 		function getData(batches, dataType, degree) {
@@ -470,38 +449,52 @@ $(document).ready(function() {
 			// sometimes all data is already in memory, i.e. batches == []
 			// then, immediate start processing, no requests need to be made
 			if (!batches.length) {
-				console.log('skip')
+				console.log('nothing to load, skip call to server (' + dataType + ')')
 				processData(dataLoaded, dataType, degree)
 			}
 
 			$.each(batches, function(i, batch) {
 				unfinishedRequests +=1
-				$.post(url, {
+				var data = {
 					'orders' : JSON.stringify(batch),
-					'quicks': 'x' // parameter "quick": for local testing, backend only does few requests
-				}).done(function(resp) {
-					// combine received data with data from cache
-					dataLoaded = mergeReceivedData(dataLoaded, resp)
-					unfinishedRequests -=1
-					if (unfinishedRequests)
-						{return}
-					if (logging.calls) {
-						var then = new Date()
-						console.log('took ' + (then-now) + 'ms to get data')
-					}
-					processData(dataLoaded, dataType, degree)
-				}).fail(function(jqXHR, stats, err) {
+					'limit': '50', // results per API call
+					'timeout': degree > 0 ? '3' : '8' // root user's data is more important
+				}
+				if (localStorage.accessTokenSC) // API calls with token may return private data
+					{data['oauth_token'] = localStorage.accessTokenSC}
+				if (BACKEND_URL.indexOf('appspot') == -1 && location.href.indexOf('appspot') == -1)
+					{data['quick'] = 'x'} // parameter "quick": for local testing, backend only does <5 requests
+				var success = function ajaxSucess(resp) {
+						// combine with data from other API calls
+						dataLoaded = mergeReceivedData(dataLoaded, resp)
+						unfinishedRequests -=1
+						if (unfinishedRequests)
+							{return}
+						if (logging.calls) {
+							var then = new Date()
+							console.log('took ' + (then-now) + 'ms to get data')
+						}
+						processData(dataLoaded, dataType, degree)
+				}
+				var error = function ajaxError(jqXHR, stats, err) {
 					console.log(jqXHR.responseText)
 					unfinishedRequests -=1
 					if (!unfinishedRequests) {
 						processData(dataLoaded, dataType, degree)
 					}
-				})
+				}
+				$.ajax({
+					type: "POST",
+					url: url,
+					data: data,
+					success: success,
+					dataType: 'json',
+					error: error
+				});
 			})
 		}
 
-		function mergeReceivedData(dataLoaded, resp) {
-			var recData = JSON.parse(resp)
+		function mergeReceivedData(dataLoaded, recData) {
 			dataLoaded.kinds = $.extend({}, dataLoaded.kinds, recData.kinds)
 			dataLoaded.connections = $.extend({}, dataLoaded.connections, recData.connections)
 			return dataLoaded
@@ -513,7 +506,8 @@ $(document).ready(function() {
 			else if (dataType == 'connectedUsers') {storeConnection(dataLoaded, degree)}
 		}
 
-		// create Sound object for newly found songs, associate sounds with User objects, signal that sounds were loaded
+		// create Sound object for newly found songs, associate sounds with
+		// User objects, signal that sounds were loaded
 		function storeSound(dataLoaded, degree) {
 			var now = new Date()
 
@@ -540,7 +534,6 @@ $(document).ready(function() {
 				determineGraphNodes()
 			}
 
-			// rewrite graph unless we only have data for root user
 			if (degree > 0) {
 				$('#btnDegree'+degree).removeClass('loading')
 			}
@@ -558,7 +551,8 @@ $(document).ready(function() {
 			}
 		}
 
-		// create User object for newly found users, associate users amongst each other, signal that users were loaded
+		// create User object for newly found users, associate users amongst each other,
+		// signal that users were loaded
 		function storeConnection(dataLoaded, degree) {
 			var now = new Date()
 
@@ -591,13 +585,11 @@ $(document).ready(function() {
 			loadDataAtMaxDegree('sounds' ,degree+1)
 		}
 		
-		// kick of retrieving data
+		// kick off retrieving data
 		loadDataAtMaxDegree('sounds', 0)
-
 	}
 
 	function checkCoolSounds() {
-
 		// mark root users sounds
 		$.each(users[rootID].sounds, function(id, sound) {
 			sound.isCool = true
@@ -621,17 +613,31 @@ $(document).ready(function() {
 		}
 	}
 
-
-
-
-
-
-
+	function getScAccessToken(oauthCode) {
+		$.post('/s/signRequest', {
+			'code': oauthCode,
+			'SOUNDCLOUD_OAUTH_REDIRECT_URL': SOUNDCLOUD_OAUTH_REDIRECT_URL
+		}).fail(function reqFail(data, status, jqXHR) {console.log(data)})
+		.done(function reqDone(data, status, jqXHR) {
+			// store token
+			if (typeof(data) == 'string')
+				{data = JSON.parse(data)
+				console.log('had to parse')
+				}
+			if (typeof(data) == 'object' && 'access_token' in data) {
+				localStorage.accessTokenSC = data['access_token']
+				startWithOAuthUser()
+			} else {console.log(data)}
+		})
+		// remove code from displayed url
+		var url = location.protocol+'//'+location.hostname+
+			(location.port ? ':'+location.port: '')+'/'
+		history.pushState({id: 'oauth_code'}, '', url);
+	}
 
 	// USER INTERACTIONS etc
-
 	function startWithOAuthUser() {
-		// retrive accessToken from LocalStorage
+		// retrive accessToken from localStorage
 		var accessTokenSC = localStorage.accessTokenSC
 		// when redirected form SC oauth dialog
 		var oauthCode = getParameterByName('code')
@@ -640,24 +646,8 @@ $(document).ready(function() {
 			startWithId('me', accessTokenSC)
 		} else if (!accessTokenSC && oauthCode) {
 			// get accessToken, then restart
-			$.post('https://api.soundcloud.com/oauth2/token', {
-				'client_id': SOUNDCLOUD_CLIENT_ID,
-				'client_secret': SOUNDCLOUD_CLIENT_SECRET,
-				'redirect_uri': SOUNDCLOUD_OAUTH_REDIRECT_URL,
-				'grant_type': 'authorization_code',
-				'code': oauthCode
-			}).fail(function reqFail(data, status, jqXHR) {console.log(data)})
-			.done(function reqDone(data, status, jqXHR) {
-				// store token and start again
-				if (typeof(data) == 'object' && 'access_token' in data) {
-					localStorage.accessTokenSC = data['access_token']
-					startWithOAuthUser()
-				} else {console.log(data)}
-			})
-			// remove code from displayed url
-			var url = location.protocol+'//'+location.hostname+
-				(location.port ? ':'+location.port: '')+'/'
-			history.pushState({id: 'oauth_code'}, '', url);
+			getScAccessToken(oauthCode)
+			return
 		} else {
 			// splashpage prompt user to authorize on SC
 			location.href = '/splashpage'
@@ -665,7 +655,7 @@ $(document).ready(function() {
 	}
 
 	function logVisit(userJSON) {
-		$.post('/log',userJSON)
+		$.post('/s/log',userJSON)
 	}
 
 	// get a URL query paramter. used to extract oauth code
@@ -688,6 +678,9 @@ $(document).ready(function() {
 			// log visits of logged in users to their own tree
 			if (id == 'me' && accessTokenSC) {
 				logVisit(user)
+				// store username locally so back button can always be displayed
+				localStorage.oauth_username = user.username
+				localStorage.oauth_user_id = user.id
 			}
 
 			// start algorithm
@@ -703,6 +696,7 @@ $(document).ready(function() {
 		}
 		var rootUser = users[id]
 		console.log("\n\n\nStart graph search for user " + rootUser.userData.username)
+		$('#rootUserInDashboard').text('- based on user ' + rootUser.userData.username).show()
 		rootID = id
 		rootUser.degree = 0
 		// start retrieving data. global variable so it can be stopped
@@ -713,8 +707,18 @@ $(document).ready(function() {
 		history.pushState({id: rootUser.userData.permalink}, '', newurl);
 
 		// show button for Connect to Soundcloud if not connected
-		if (!localStorage.accessTokenSC) {
-			$('#oauth_button').show()
+		if (!localStorage.accessTokenSC) { // user not logged in
+			$('#oauthButton').show()
+			$('#goToOAuthUserButton').hide()
+		} else if (localStorage.oauth_username && rootUser.userData.username != localStorage.oauth_username) {
+			// user logging in and browsing someone else's account
+			$('#oauthButton').hide()
+			$('#goToOAuthUserButton').attr('user_id',localStorage.oauth_user_id).show()
+			.find('button').text('Back to ' + localStorage.oauth_username)
+
+		} else { // user logged in and exploring own account
+			$('#oauthButton').hide()
+			$('#goToOAuthUserButton').hide()
 		}
 	}
 
@@ -770,6 +774,8 @@ $(document).ready(function() {
 		startWithId(this.getAttribute('user_id'))
 	}
 
-
+	$('#goToOAuthUserButton').click(switchToUserOnClick)
 	$('#created-by').tooltip()
+	$('.degreeButton').tooltip({delay: { show: 200, hide: 100 }})
+	$('.tooltipped').tooltip({delay: { show: 200, hide: 100 }})
 })

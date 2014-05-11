@@ -9,10 +9,42 @@ body{
   background:#665;
 }
 
+.spinner {
+  display: inline-block;
+  opacity: 0;
+  max-width: 0;
+
+  -webkit-transition: opacity 0.25s, max-width 0.45s; 
+  -moz-transition: opacity 0.25s, max-width 0.45s;
+  -o-transition: opacity 0.25s, max-width 0.45s;
+  transition: opacity 0.25s, max-width 0.45s; /* Duration fixed since we animate additional hidden width */
+}
+
+.degreeButton.loading .spinner {
+  opacity: 1;
+  max-width: 50px; /* More than it will ever come, notice that this affects on animation duration */
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #halfviz{
 /*  float:left;*/
   position:absolute;
-  top:56px;
+  top:64px;
   left:10px;
   right:10px;
   bottom:10px;
@@ -20,7 +52,7 @@ body{
 
   background:#fffff3;
   border-radius:4px;
-  z-index:1;
+  /*z-index:1;*/
 }
 
 #viewport{
@@ -38,10 +70,36 @@ body{
   top:0;
   width:256px;
   bottom:10px;
-  overflow:hidden;
+  overflow:auto;
+  overflow-x: hidden;
   border:1px solid #ccb;
   padding-left:0px;
   background:white;
+}
+
+#editor p, #editor div {
+  margin: 5px;
+}
+
+.contentList {
+  list-style: none;
+  padding-left: 10px;
+  font-size: 12px;
+}
+
+.contentList li {
+  margin-top: 1px;
+  white-space: nowrap;
+}
+
+.contentThumb {
+  height: 20px;
+  width: 20px;
+  margin-right: 2px
+}
+
+.contentName {
+  color: #f30;
 }
 
 #editor textarea{
@@ -89,9 +147,12 @@ a.update{
   top:10px;
   left:10px;
   right:10px;
-  background:#eeeee2 url(halfviz.png) 10px 8px no-repeat;
+  background:#eeeee2; /*url(halfviz.png) 10px 8px no-repeat;*/
   border-radius:4px;
   padding:0;
+}
+#dashboard h3 {
+  padding-left: 20px;
 }
 
 #dashboard a.about{
@@ -145,24 +206,26 @@ a.update{
   text-decoration:underline;
 }
 */
-#dashboard a.help{
+#dashboard .help{
   display:block;
   float:right;
-  background:url(help-button.png) top left;
-  width:22px;
-  height:22px;
-  margin:16px 14px 0 60px;
-  text-indent:-66px;
-  vertical-align:bottom;
-  text-decoration:none;
-  color:black;
-  font:12px/30px Arial, sans-serif;
-}
-#dashboard a.help:hover{
-  background:url(help-button.png) -22px left;
-  text-decoration:underline;
+  /*background:url(help-button.png) top left;*/
+  /*width:22px;*/
+  /*height:22px;*/
+  margin:10px 14px 0 60px;
+  /*text-indent:-66px;*/
+  /*vertical-align:bottom;*/
+  /*text-decoration:none;*/
+  /*color:black;*/
+  /*font:12px/30px Arial, sans-serif;*/
 }
 
+.inDashboard {
+  display: table-cell;
+  vertical-align: middle;
+  height: 55px;
+  padding-left: 30px;
+}
 
 
 /* still needed? */

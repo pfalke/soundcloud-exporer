@@ -6,11 +6,13 @@
   Parseur = function(){
     var strip = function(s){ return s.replace(/^[\s\t]+|[\s\t]+$/g,'') }    
     var recognize = function(s){
+      // console.log(s)
       // return the first {.*} mapping in the string (or "" if none)
       var from = -1,
           to = -1,
           depth = 0;
-      $.each(s, function(i, c){
+      for (var i=0; i<s.length; i++) {
+        var c = s[i]
         switch (c){
           case '{':
             if (depth==0 && from==-1) from = i
@@ -21,7 +23,19 @@
             if (depth==0 && to==-1) to = i+1
             break
         }
-      })
+      }
+      // $.each(s, function(i, c){
+      //   switch (c){
+      //     case '{':
+      //       if (depth==0 && from==-1) from = i
+      //       depth++
+      //       break
+      //     case '}':
+      //       depth--
+      //       if (depth==0 && to==-1) to = i+1
+      //       break
+      //   }
+      // })
       return s.substring(from, to)
     }
     var unpack = function(os){
@@ -158,7 +172,6 @@
           var tokens = lechs(line)
           if (tokens.length>0) statements.push(tokens)
         })
-        
         return yack(statements)
       }
     }

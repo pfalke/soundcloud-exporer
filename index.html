@@ -7,8 +7,23 @@
     <!-- // <script src="jquery-1.9.1.min.js"></script> -->
 
     <link rel="stylesheet" href="style/halfviz.css" type="text/css" charset="utf-8">
+    <link rel="stylesheet" href="css/bootstrap.min.css" type="text/css" charset="utf-8">
+    <link rel="stylesheet" href="css/font-awesome.css" type="text/css" charset="utf-8">
 
-    <title>Soundcloud Pathfinder</title>
+    <title>Soundcloud Explorer</title>
+
+    <!-- Facebook Open Graph Keywords -->
+    <!-- <meta property="fb:app_id" content="186908498160373" />  -->
+    <!-- <meta property="og:image" content="{{ image }}" /> -->
+    <meta property="og:url" content="https://soundcloud-explore.appspot.com/"/>
+    <!-- <meta property="og:type" content="sinnfragenkombinator:sinnfrage"/> -->
+    <meta property="og:type" content="website"/>
+    <meta property="og:title" content="The Soundcloud Explorer"/>
+    <meta property="og:description" content="Get a graph of the sounds and music-lovers around you."/>
+
+    <meta property="fb:admins" content="pfalkenhausen" />
+
+
 </head>
 <body>
 
@@ -160,29 +175,135 @@
     <div id="halfviz">
       <canvas id="viewport" width="800" height="600"></canvas>
       <div id="editor">
-        <div class="io">
+        <p>
+          <button id="btnDegree1" degree="1" class="btn btn-primary degreeButton loading" data-container="body" data-toggle="tooltip" data-placement="left" title="" data-original-title="Sounds of the people you follow">
+            <span class="spinner"><i class="icon-spin icon-refresh"></i></span>
+            Degree 1
+          </button><br>
+          <button id="btnDegree2" degree="2" class="btn degreeButton" data-container="body" data-toggle="tooltip" data-placement="left" title="" data-original-title="Sounds of the people followed by the people you follow" disabled>
+            <span class="spinner"><i class="icon-spin icon-refresh"></i></span>
+            Degree 2
+          </button><br>
+          <button id="btnDegree3" degree="3" class="btn degreeButton" data-container="body" data-toggle="tooltip" data-placement="left" title="" data-original-title="Sounds of the people followed by the people followed by the people you follow" disabled>
+            <span class="spinner"><i class="icon-spin icon-refresh" data-container="body" data-toggle="tooltip" data-placement="left" title="" data-original-title="Sounds of the people followed by the people followed by the people you follow"></i></span>
+            Degree 3
+          </button><br>
+          <button id="btnDegree4" degree="4" class="btn degreeButton" data-container="body" data-toggle="tooltip" data-placement="left" title="" data-original-title="Sounds of the people followed by the people followed by the people followed by the people you follow" disabled>
+            <span class="spinner"><i class="icon-spin icon-refresh"></i></span>
+            Degree 4
+          </button><br>
+        </p>
+        <p>
+          <div class="tooltipped" data-toggle="tooltip" data-container="body" data-placement="left" title="" data-original-title="Only show songs not liked/shared by you">
+            <input type="checkbox" id="keepFresh"/> <label for="keepFresh" style="font-weight: normal;">Keep it fresh</label>
+          </div>
+          
+          <div class="tooltipped" data-toggle="tooltip" data-container="body" data-placement="left" title="" data-original-title="Only show people you don't follow">
+            <input type="checkbox" id="newPeople"/> <label for="newPeople" style="font-weight: normal;">Give me new people</label>
+          </div>
+        </p>
+        <div>
+          Date Range
+          <div id="dateRangeButtons" class="btn-group btn-group-sm" data-toggle="buttons-radio">
+            <button id="btnDateAny" dateRange="any" type="button" class="btn btn-primary active">Any</button>
+            <button id="btnDateFresh" dateRange="fresh" type="button" class="btn btn-primary tooltipped" data-toggle="tooltip" data-container="body" data-placement="bottom" title="" data-original-title="Sounds that are at most 3 months old">Fresh</button>
+            <button id="btnDateHot" dateRange="hot" type="button" class="btn btn-primary tooltipped" data-toggle="tooltip" data-container="body" data-placement="bottom" title="" data-original-title="Sounds that are at most 3 weeks old">Hot</button>
+          </div>
+        </div>
+
+        <div>
+          Sounds<br>
+          <ul id="soundsInGraph" class="contentList">
+          </ul>
+        </div>
+
+        <div>
+          Users<br>
+          <ul id="usersInGraph" class="contentList">
+          </ul>
+        </div>
+
+        <p>
+          This is a just-for-fun project. <br> 
+          <a href="mailto:x@pfalke.com">Let me know</a> what you think!
+        </p>
+
+        <div class="io" style="display:none;">
           <div class="ctrl"><a href="#" class="new">clear</a><a class="examples" href="#">examples <span></span></a></div>
           <ul class="dialog"></ul>
         </div>
-        <textarea id="code"></textarea>  
+        <textarea id="code" style="display:none;"></textarea>  
       </div>
       <div id="grabber"></div>
     </div>  
 
     <div id="dashboard">
-      <a href="#" class="about active"><div class="popup"><img src="style/nub.png">About</div>about halfviz</a>
-      <a href="#" class="help">syntax help</a>
-      <ul class="controls">
-        <li class="stiffness">spring tension <span class="frob">10,000</span></li>
-        <li class="repulsion">node repulsion <span class="frob">10,000</span></li>
+      <div class="dashboardLeft" style="float:left;">
+        <h3 class="inDashboard">Soundcloud Explorer</h3>      
+
+        <!-- show who is the root user -->
+        <h4 class="inDashboard">
+          <span style="display:none;" id="rootUserInDashboard"><span>
+        </h4>        
+        <div class="inDashboard">  
+          <!-- Prompt for oAuth or allow to go back to oAuth user if other user is displayed -->
+          <a href="/" user_id="" style="display:none;" id="goToOAuthUserButton">
+            <button class="btn btn-primary btn-sm">
+            </button>
+          </a>
+
+          <a href="https://soundcloud.com/connect?response_type=code&scope=non-expiring&client_id=81d9704f45e2b1d224e791d20eb76d2f&redirect_uri=https%3A%2F%2Fsoundcloud-explore.appspot.com%2F" style="display:none;" id="oauthButton">
+            <button class="btn btn-primary">See graph for your own Soundcloud!
+            </button>
+          </a>
+
+        </div>
+      </div>
+
+    <div class="inDashboard" style="float:right">  
+      <!-- Button trigger modal -->
+      <button class="btn btn-primary help"  data-container="body" data-backdrop="false" data-toggle="modal" data-target="#myModal">
+        About
+      </button>
+    </div>
+    <!-- Modal -->
+    <div class="modal fade" id="myModal" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
+      <div class="modal-dialog">
+        <div class="modal-content">
+          <div class="modal-header">
+            <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
+            <h4 class="modal-title" id="myModalLabel">About the Soundcloud Explorer</h4>
+          </div>
+          <div class="modal-body">
+            <p>Created as an interactive tool to discover fresh sounds and new people to follow on Soundcloud.</p>
+            <p>Play around with the settings in the dashboard on your right to explore the sounds and music-lovers around you.</p>
+            <p><a href="mailto:x@pfalke.com" target="_blank">Let me know what you think!</a></p>
+            <p>- Philipp von Falkenhausen</p>
+          </div>
+          <div class="modal-footer">
+            <span style="float:left;">Thanks to Soundcloud, Arbor.js/halfviz, Bootstrap and jQuery.</span>
+            <button type="button" class="btn btn-primary" data-dismiss="modal">Close</button>
+          </div>
+        </div><!-- /.modal-content -->
+      </div><!-- /.modal-dialog -->
+    </div><!-- /.modal -->
+
+
+
+      <!-- old stuff -->
+      <a href="#" class="about active" style="display:none;"><div class="popup"><img src="style/nub.png">About</div>about halfviz</a>
+      <a href="#" class="help" style="display:none;">syntax help</a>
+      <ul class="controls" style="display:none;">
+        <li class="stiffness">spring tension <span class="frob">1,000</span></li>
+        <li class="repulsion">node repulsion <span class="frob">1,000</span></li>
         <li class="friction">friction <span class="frob">20%</span></li>
         <li class="gravity">gravity <span class="toggle">.</span></li>
       </ul>
     </div>
   </div>
 
-  <script src="src/jquery-1.6.1.min.js"></script>
-  <script src="src/jquery.address-1.4.min.js"></script>
+  <script src="src/jquery-1.10.2.min.js"></script>
+  <!-- <script src="src/jquersy.address-1.4.min.js"></script> -->
   <script src="arbor/lib/arbor.js"></script>
   <script src="src/graphics.js"></script>
 
@@ -195,7 +316,9 @@
   
   <!-- the main driver code: start here -->
   <script src="src/halfviz.js"></script> 
-  <script src='src/pathfinder.js'></script>
+  <script src='src/explore.js'></script>
+  <!--<script src='src/test.js'></script>-->
+  <script src="js/bootstrap.min.js"></script> 
 
 </body>
 </html>

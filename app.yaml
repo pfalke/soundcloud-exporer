@@ -1,5 +1,5 @@
 application: soundcloud-explore
-version: oauth2
+version: dev
 runtime: python27
 api_version: 1
 threadsafe: yes
@@ -17,6 +17,18 @@ handlers:
   static_dir: style
   secure: always
 
+- url: /js
+  static_dir: js
+  secure: always
+
+- url: /css
+  static_dir: css
+  secure: always
+
+- url: /fonts
+  static_dir: fonts
+  secure: always
+
 - url: /favicon\.ico
   static_files: favicon.ico
   upload: favicon\.ico
@@ -32,12 +44,12 @@ handlers:
   upload: splashpage\.html
   secure: always
 
-- url: /showstats
+- url: /(showstats)
   script: main.app
   login: admin
   secure: always
 
-- url: /log
+- url: /s/.*
   script: main.app
   secure: always
 
