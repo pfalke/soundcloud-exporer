@@ -11,12 +11,9 @@ import os
 import json
 import urllib
 
+import config
+
 from google.appengine.api import urlfetch
-
-
-SC_BASE_URL = "https://api.soundcloud.com/users/"
-SOUNDCLOUD_CLIENT_ID = '81d9704f45e2b1d224e791d20eb76d2f'
-SOUNDCLOUD_CLIENT_SECRET = '4d33c7d194a23e781f184fb2418badae'
 
 
 
@@ -90,11 +87,11 @@ class DataHandler(webapp2.RequestHandler):
             for data_type in user_data:
                 # fire requests to SC API
                 rpc = urlfetch.create_rpc(deadline=timeout)
-                url = SC_BASE_URL + user_id + '/' + data_type + '.json?'
+                url = config.SC_BASE_URL + user_id + '/' + data_type + '.json?'
                 if 'oauth_token' in self.request.arguments():
                     url += 'oauth_token=' + self.request.get('oauth_token') + '&'
                 else:
-                    url += 'client_id=' + SOUNDCLOUD_CLIENT_ID + '&'
+                    url += 'client_id=' + config.SOUNDCLOUD_CLIENT_ID + '&'
                 if 'limit' in self.request.arguments():
                     url += 'limit=' + str(self.request.get('limit'))
                 if req_counter % 10 == 0:
@@ -184,8 +181,8 @@ class SignRequestHandler(webapp2.RequestHandler):
         self.response.headers.add_header("Content-Type", "application/json")
 
         redirect_uri = self.request.get('SOUNDCLOUD_OAUTH_REDIRECT_URL')
-        client_id = SOUNDCLOUD_CLIENT_ID
-        client_secret = SOUNDCLOUD_CLIENT_SECRET
+        client_id = config.SOUNDCLOUD_CLIENT_ID
+        client_secret = config.SOUNDCLOUD_CLIENT_SECRET
         logging.info(redirect_uri)
         if 'localhost' in redirect_uri:
             client_id = 'f90fa65cc94d868d957c0b529c5ecc3d'
